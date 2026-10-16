@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-O+VBtZqP/NAwLk+oNZXjengzu4ear59XumQoiYjYmRg=' 'sha256-azIoXwwhERfNHkpbzzNhFjL92+69q3C4ystX7wuhV1s='; style-src 'sha256-MkPgRLyMDeZPBYJh5gPG/OgFb2M+2zAHfGyJ/3bqJn0='; connect-src https://openrouter.ai https://hn.algolia.com https://hacker-news.firebaseio.com; img-src data:; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-O+VBtZqP/NAwLk+oNZXjengzu4ear59XumQoiYjYmRg=' 'sha256-Kz7wD0z8568wOwYjGAlEJeUrZHsy0AywsXqdeLa45Cg='; style-src 'sha256-MkPgRLyMDeZPBYJh5gPG/OgFb2M+2zAHfGyJ/3bqJn0='; connect-src https://openrouter.ai https://hn.algolia.com https://hacker-news.firebaseio.com; img-src data:; base-uri 'none'; form-action 'none'">
 <title>Orange Split - For and Against on Hacker News</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 32 32%27%3E%3Crect width=%2732%27 height=%2732%27 fill=%27%23ff6600%27/%3E%3Ctext x=%2716%27 y=%2721%27 font-family=%27sans-serif%27 font-weight=%27bold%27 font-size=%2714%27 text-anchor=%27middle%27 fill=%27white%27%3EOS%3C/text%3E%3C/svg%3E">
 <style>
@@ -5117,9 +5117,12 @@ const ELAPSED_TICK_MS = 1000;
 function startElapsedCounter() {
     const startedAt = Date.now();
     let progressText = 'Starting';
+    let stopped = false;
     const seconds = () => (Date.now() - startedAt) / 1000;
     const elapsed = () => formatElapsed(seconds());
-    const tick = () => setStatus(`${progressText}, ${elapsed()} elapsed`);
+    const tick = () => {
+        if (!stopped) setStatus(`${progressText}, ${elapsed()} elapsed`);
+    };
     tick();
     const timer = setInterval(tick, ELAPSED_TICK_MS);
     return {
@@ -5130,6 +5133,7 @@ function startElapsedCounter() {
         elapsed,
         seconds,
         stop() {
+            stopped = true;
             clearInterval(timer);
         },
     };
