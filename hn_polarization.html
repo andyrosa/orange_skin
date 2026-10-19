@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-O+VBtZqP/NAwLk+oNZXjengzu4ear59XumQoiYjYmRg=' 'sha256-Kz7wD0z8568wOwYjGAlEJeUrZHsy0AywsXqdeLa45Cg='; style-src 'sha256-MkPgRLyMDeZPBYJh5gPG/OgFb2M+2zAHfGyJ/3bqJn0='; connect-src https://openrouter.ai https://hn.algolia.com https://hacker-news.firebaseio.com; img-src data:; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-Zj0s8qU3So2+KBVimorO8oRxUbix/Q8fL3gRAgcb2l8=' 'sha256-IW9BzmukSvC34bf8dr0G4vNhzmPZ8uMw2Hf6GpTLidY='; style-src 'sha256-Trj6Ru7pB5QxXjhptOB5x95qrn2hTZjAdccLSgc/BZ4='; connect-src https://openrouter.ai https://hn.algolia.com https://hacker-news.firebaseio.com; img-src data:; base-uri 'none'; form-action 'none'">
 <title>Orange Split - For and Against on Hacker News</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 32 32%27%3E%3Crect width=%2732%27 height=%2732%27 fill=%27%23ff6600%27/%3E%3Ctext x=%2716%27 y=%2721%27 font-family=%27sans-serif%27 font-weight=%27bold%27 font-size=%2714%27 text-anchor=%27middle%27 fill=%27white%27%3EOS%3C/text%3E%3C/svg%3E">
 <style>
@@ -90,6 +90,8 @@ button { margin-right: 0.5rem; }
 #run-hint { color: #666; }
 #status { margin: 0.5rem 0; white-space: pre-wrap; }
 #status.error { color: #b00020; }
+#article-summary { margin-top: 1rem; max-width: 70rem; line-height: 1.5; }
+#article-summary-cap { width: 5em; }
 #results { margin-top: 1rem; }
 .narrative { max-width: 70rem; line-height: 1.5; }
 .group-toggle { margin: 0; padding: 0; border: 0; background: none; color: inherit; font: inherit; text-align: left; cursor: pointer; }
@@ -234,6 +236,9 @@ button { margin-right: 0.5rem; }
 <select id="summary-model" hidden aria-hidden="true" tabindex="-1"></select>
 </div>
 </div>
+<div id="article-summary-cap-control" class="model-choice">
+<label for="article-summary-cap">Article summary max $</label> <input id="article-summary-cap" type="number" min="0" step="0.05">
+</div>
 </div>
 <p id="share-row" hidden>
 <label for="max-cost">Max cost $</label> <input id="max-cost" type="number" min="0" step="1">
@@ -254,6 +259,7 @@ button { margin-right: 0.5rem; }
 <ul id="cached-results-list" hidden></ul>
 <div id="status"></div>
 <details id="warnings" hidden><summary></summary><ul></ul></details>
+<section id="article-summary" hidden><h2>Article summary</h2><p></p></section>
 <div id="results"></div>
 <details id="unverified-axes" hidden>
 <summary></summary>
@@ -278,6 +284,7 @@ const CONSTANTS = Object.freeze({
     OPENROUTER_KEY_EXCHANGE_URL: 'https://openrouter.ai/api/v1/auth/keys',
     PKCE_VERIFIER_STORAGE_KEY: 'openrouter_pkce_verifier',
     STORAGE_KEY_OPENROUTER: 'openrouter_api_key',
+    STORAGE_KEY_ARTICLE_SUMMARY_CAP: 'article_summary_cap_usd',
     CACHE_KEY_PREFIX: 'hn_polarization_cache:',
     THREAD_KEY_PREFIX: 'hn_polarization_thread:',
     RESULT_KEY_PREFIX: 'hn_polarization_result:',
@@ -688,7 +695,7 @@ function createArticleSource(text, title = '') {
 function pipelineStageOrder(source, config) {
     if (isArticle(source)) return ['prepare', 'extract', 'consolidate', 'reviewAxes', 'score', 'synthesize', 'reviewSynthesis'];
     const stages = config.singleCall ? SINGLE_CALL_STAGE_ORDER : STAGE_ORDER;
-    return source.url && config.articleSummary ? [...stages, 'articleSummary'] : stages;
+    return articleSummaryApplies(source, config) ? [...stages, 'articleSummary'] : stages;
 }
 function sourceFromSnapshot(snapshot) {
     return isArticle(snapshot.source) ? createArticleSource(snapshot.source.text, snapshot.source.title) : flattenThread(snapshot.item);
@@ -846,17 +853,10 @@ function buildSynthesisReviewMessages(source, rows, commentsById, synthesis) {
     ];
 }
 // The forecast for the calls a run must still make; remaining is ALL_UNCACHED or uncachedFractions(probe).
-// The forecast allowance of the linked article's summary: the costlier of two measured summaries of one long
-// article, by GPT-6 Sol low ($0.045, 4 seconds) and Claude Opus 5.5 ($0.19, 12 seconds). Not a cap.
-const ARTICLE_SUMMARY_ALLOWANCE = Object.freeze({ usd: 0.2, seconds: 15 });
-
+// The page summarizes the linked article when the thread loads, apart from the run, so the forecast leaves it out.
 function estimateSourceRun(source, keys, remaining) {
     const chars = totalCommentChars(isArticle(source) ? [{ text: source.text }] : source.comments);
     let { usd, seconds } = estimateRun(chars, keys, remaining);
-    if (!isArticle(source) && source.url && DEFAULT_CONFIG.articleSummary) {
-        usd += ARTICLE_SUMMARY_ALLOWANCE.usd * remaining.articleSummary;
-        seconds += ARTICLE_SUMMARY_ALLOWANCE.seconds * remaining.articleSummary;
-    }
     const articleCallsLeft = ['prepare', 'reviewAxes', 'reviewSynthesis'].some(stage => remaining[stage] > 0);
     if (isArticle(source) && articleCallsLeft) {
         // An article adds a full-text preparation call on the extraction model and two review calls. Heuristic,
@@ -1383,8 +1383,12 @@ const ARTICLE_SUMMARY_SCHEMA = {
         additionalProperties: false,
     },
 };
-// The most article text one fetch passes to the model; the native fetch of some providers ignores it.
+// The most article text one fetch passes to the model.
 const ARTICLE_FETCH_MAX_TOKENS = 30000;
+// OpenRouter's own fetch engine truncates the page to max_content_tokens and charges nothing beyond the tokens;
+// a provider's native fetch, which the default engine prefers, does not truncate, which would leave the fetched
+// text, and so the cost, unbounded.
+const ARTICLE_FETCH_ENGINE = 'openrouter';
 
 function buildArticleSummaryCall(config, thread) {
     return {
@@ -1394,7 +1398,7 @@ function buildArticleSummaryCall(config, thread) {
             { role: 'user', content: `Title: ${thread.title}\nURL: ${thread.url}` },
         ],
         schema: ARTICLE_SUMMARY_SCHEMA,
-        tools: [{ type: 'openrouter:web_fetch', parameters: { max_uses: 1, max_content_tokens: ARTICLE_FETCH_MAX_TOKENS, allowed_domains: [new URL(thread.url).hostname] } }],
+        tools: [{ type: 'openrouter:web_fetch', parameters: { engine: ARTICLE_FETCH_ENGINE, max_uses: 1, max_content_tokens: ARTICLE_FETCH_MAX_TOKENS, allowed_domains: [new URL(thread.url).hostname] } }],
         // Runs beside the analysis, which depends on none of it: its failure must not stop the run.
         meta: { independent: true },
     };
@@ -1405,6 +1409,79 @@ function parseArticleSummaryResponse(json) {
         throw new InvalidResponseError(`article summary response has no fetched flag and summary text: ${describeJson(json)}`, json);
     }
     return { fetched: json.fetched, summary: json.summary.trim() };
+}
+
+// Whether a source gets the linked article's summary: a thread with a link, while config.articleSummary is on.
+function articleSummaryApplies(source, config) {
+    return !isArticle(source) && Boolean(source.url) && Boolean(config.articleSummary);
+}
+
+// The model passes of one summary request: the pass that asks for the fetch and the pass that writes the summary
+// from the fetched page. This is an assumption about how OpenRouter runs a server tool, so the worst case below
+// counts the request and the output ceiling once per pass.
+const ARTICLE_SUMMARY_MODEL_PASSES = 2;
+// The fewest output tokens a summary call is sent with; a cap that leaves fewer refuses the call.
+const ARTICLE_SUMMARY_MIN_OUTPUT_TOKENS = 1000;
+
+class ArticleSummaryCapError extends Error {
+    constructor(message) {
+        super(message);
+        this.name = 'ArticleSummaryCapError';
+    }
+}
+
+// The call with the largest output ceiling, up to its stage's, whose worst-case cost fits capUsd. Every pass reads
+// the request and the output of the passes before it, a later pass also reads the fetched page, and every pass
+// writes up to the ceiling. prices is a modelPriceTable.
+function fitArticleSummaryCall(call, prices, capUsd) {
+    const price = prices.get(call.model);
+    if (price === undefined) throw new Error(`No OpenRouter price for ${call.model}; the article summary cap cannot bound this call`);
+    const promptPrice = Math.max(price.prompt, price.inputCacheWrite);
+    const passes = ARTICLE_SUMMARY_MODEL_PASSES;
+    const fixedUsd = (passes * promptTokenBound(call) + ARTICLE_FETCH_MAX_TOKENS) * promptPrice + passes * price.request;
+    const perOutputTokenUsd = passes * price.completion + (passes - 1) * promptPrice;
+    const outputTokens = Math.min(call.maxTokens, Math.floor((capUsd - fixedUsd) / perOutputTokenUsd));
+    if (!(outputTokens >= ARTICLE_SUMMARY_MIN_OUTPUT_TOKENS)) {
+        throw new ArticleSummaryCapError(`the cap of $${capUsd.toFixed(COST_DIGITS)} leaves ${Math.max(0, outputTokens)} output tokens for ${call.model}, fewer than ${ARTICLE_SUMMARY_MIN_OUTPUT_TOKENS}; raise Article summary max`);
+    }
+    return { ...call, maxTokens: outputTokens };
+}
+
+// What a response's call cost when it was made; a cached replay costs nothing now but reports its original cost.
+function billedCost(usage) {
+    const cost = usage.cached ? usage.originalCost : usage.cost;
+    if (!validCost(cost)) throw new Error('the cost of an earlier article summary call is unknown, so the cap cannot bound the next one');
+    return cost;
+}
+
+// The linked article's summary outside a pipeline run, with the one format repair a run gives it, and what its
+// calls cost. The page calls it when a thread loads; callChat is a cached OpenRouter callChat. Each call's output
+// ceiling is fitted to what the calls before it left of capUsd.
+async function summarizeLinkedArticle({ thread, config, callChat, prices, capUsd }) {
+    const call = buildArticleSummaryCall({ ...DEFAULT_CONFIG, ...config }, thread);
+    let costUsd = 0;
+    const summarize = async request => {
+        const fitted = fitArticleSummaryCall(request, prices, capUsd - costUsd);
+        let response;
+        try {
+            response = await callChat(fitted);
+        } catch (error) {
+            if (error.usage !== undefined) costUsd += billedCost(error.usage);
+            throw error;
+        }
+        costUsd += billedCost(response.usage);
+        return parseModelResponse(fitted, response.json);
+    };
+    try {
+        return { summary: await summarize(call), costUsd };
+    } catch (original) {
+        if (!isResponseFailure(original) || original.response === undefined) throw original;
+        try {
+            return { summary: await summarize(buildFormatRepairCall(call, original)), costUsd };
+        } catch (error) {
+            throw new Error(`format repair failed or blocked: ${error.message}. Original validation: ${original.message}`);
+        }
+    }
 }
 
 const SYNTHESIS_SCHEMA = {
@@ -2585,8 +2662,12 @@ function requestAllowance(call, prices) {
     if (!Number.isFinite(call.maxTokens) || call.maxTokens <= 0) {
         throw new Error(`${call.stage} call to ${call.model} has no output ceiling; the spending cap cannot bound it`);
     }
-    const promptBound = new TextEncoder().encode(JSON.stringify([call.messages, call.schema])).length + REQUEST_OVERHEAD_TOKENS;
-    return promptBound * Math.max(price.prompt, price.inputCacheWrite) + call.maxTokens * price.completion + price.request;
+    return promptTokenBound(call) * Math.max(price.prompt, price.inputCacheWrite) + call.maxTokens * price.completion + price.request;
+}
+
+// An upper bound on a request's prompt tokens: its UTF-8 bytes, since a token is at least one byte, plus the framing room.
+function promptTokenBound(call) {
+    return new TextEncoder().encode(JSON.stringify([call.messages, call.schema, ...(call.tools ? [call.tools] : [])])).length + REQUEST_OVERHEAD_TOKENS;
 }
 
 class BudgetReservationError extends Error {
@@ -3097,7 +3178,7 @@ async function runPipeline({ thread, callChat, onProgress, signal, config }) {
     }
     // The linked article's summary, by the summary model, runs beside the analysis. A text post has no link. A failure
     // is reported and leaves the analysis intact.
-    const articleSummaryRun = !articleMode && thread.url && cfg.articleSummary
+    const articleSummaryRun = articleSummaryApplies(thread, cfg)
         ? runUnbatchable(buildArticleSummaryCall(cfg, thread)).then(
             articleSummary => ({ articleSummary, articleSummaryError: null }),
             error => {
@@ -3524,6 +3605,8 @@ const elements = {
     shareRow: document.getElementById('share-row'),
     share: document.getElementById('share'),
     maxCost: document.getElementById('max-cost'),
+    articleSummaryCap: document.getElementById('article-summary-cap'),
+    articleSummaryCapControl: document.getElementById('article-summary-cap-control'),
     extractionModel: document.getElementById('extraction-model'),
     extractionModelHeader: document.getElementById('extraction-model-header'),
     extractionModelPicker: document.getElementById('extraction-model-picker'),
@@ -3573,6 +3656,7 @@ const elements = {
     threadTitle: document.getElementById('thread-title'),
     status: document.getElementById('status'),
     warnings: document.getElementById('warnings'),
+    articleSummary: document.getElementById('article-summary'),
     results: document.getElementById('results'),
     unverifiedAxes: document.getElementById('unverified-axes'),
 };
@@ -3630,6 +3714,25 @@ function maxCostInBox() {
     return positiveNumberInBox(elements.maxCost) ?? DEFAULT_MAX_COST_USD;
 }
 
+// The Article summary max box caps the linked article's summary call, apart from Max cost, since the summary is
+// not part of a run. It is kept in localStorage; an empty or non-positive box counts as the default, and editing
+// it writes the default back.
+const DEFAULT_ARTICLE_SUMMARY_CAP_USD = 0.25;
+
+// The page writes only positive numbers, so a stored value that is not one is reported and replaced by the default.
+function storedArticleSummaryCap() {
+    const stored = localStorage.getItem(CONSTANTS.STORAGE_KEY_ARTICLE_SUMMARY_CAP);
+    if (stored === null) return DEFAULT_ARTICLE_SUMMARY_CAP_USD;
+    const value = Number(stored);
+    if (Number.isFinite(value) && value > 0) return value;
+    setStatus(`The stored Article summary max "${stored}" is not a positive dollar amount; the page uses $${DEFAULT_ARTICLE_SUMMARY_CAP_USD} instead.`, true);
+    return DEFAULT_ARTICLE_SUMMARY_CAP_USD;
+}
+
+function articleSummaryCapInBox() {
+    return positiveNumberInBox(elements.articleSummaryCap) ?? DEFAULT_ARTICLE_SUMMARY_CAP_USD;
+}
+
 function applyMaxCostToShare() {
     if (isArticle(loadedThread)) { elements.share.value = 100; return; }
     if (loadedThread === null) {
@@ -3670,8 +3773,10 @@ function keyAvailable() {
 }
 
 // The run as the page would start it now: DEFAULT_CONFIG, then the four model choices, then the Max cost box.
+// The page summarizes the linked article itself when the thread loads (startArticleSummary), so its runs leave
+// the summary out.
 function selectedRunConfig() {
-    return { ...buildRunConfig(selectedModelKeys()), budgetUsd: maxCostInBox() };
+    return { ...buildRunConfig(selectedModelKeys()), budgetUsd: maxCostInBox(), articleSummary: false };
 }
 
 // A run's selection: the thread or article id, its snapshot time, and the current share, models, and Max cost.
@@ -4591,6 +4696,7 @@ async function loadThreadFromPage(threadId, { share, cachedResult, cachedComment
     elements.threadTitle.textContent = '';
     elements.threadTitle.removeAttribute('href');
     clearResults();
+    hideArticleSummary();
     updateEstimate();
     try {
         let snapshot = snapshotStore.get(threadId);
@@ -4618,6 +4724,7 @@ async function loadThreadFromPage(threadId, { share, cachedResult, cachedComment
         closeList();
         elements.threadTitle.textContent = loadedThread.title;
         elements.threadTitle.href = CONSTANTS.HN_ITEM_PAGE_URL + loadedThread.id;
+        startArticleSummary(loadedThread, currentApiKey());
         let currentCommentCount = null;
         let currentCountError = null;
         try {
@@ -4941,16 +5048,82 @@ function threadCaveat(singleCall) {
         + 'The summary sees at most forty axes and two excerpts of up to 700 characters per stance.';
 }
 
-// The linked article's summary, before the discussion: a heading with the link, then the summary, or why it is
-// missing. Nothing for a result without one (a text post, a pasted article, a result saved before the summary).
-function renderArticleSummary(result) {
-    if (!result.articleSummary && !result.articleSummaryError) return [];
-    const section = makeElement('section', { className: 'article-summary' });
-    const heading = makeElement('h2', { text: 'The linked article' });
-    section.appendChild(heading);
-    const failed = result.articleSummaryError ? `unavailable: ${result.articleSummaryError}` : result.articleSummary.fetched ? null : `not fetched: ${result.articleSummary.summary}`;
-    section.appendChild(makeElement('p', { text: failed === null ? result.articleSummary.summary : `Article summary ${failed}` }));
-    return [section];
+// The linked article's summary, before the discussion. It starts when a thread loads and fills its section when
+// the call returns, while the page stays free for a run. A load of another source makes a pending summary stale;
+// its call still finishes and is cached.
+const articleSummaryLatest = makeLatest();
+// The thread whose summary waits for an OpenRouter key: it was loaded with no key held, and its summary is not
+// cached. A run started with a key starts the summary.
+let articleSummaryAwaitingKey = null;
+// The thread whose summary the Article summary max box refused; raising the cap starts it again.
+let articleSummaryRefusedByCap = null;
+// OpenRouter's price table, read once per page for the cap; a failed read is retried at the next summary.
+let articleSummaryPrices = null;
+
+class ApiKeyMissingError extends Error {
+    constructor() {
+        super('no OpenRouter key is held');
+        this.name = 'ApiKeyMissingError';
+    }
+}
+
+function showArticleSummaryText(text) {
+    elements.articleSummary.querySelector('p').textContent = text;
+    elements.articleSummary.hidden = false;
+}
+
+function hideArticleSummary() {
+    articleSummaryLatest.cancel();
+    articleSummaryAwaitingKey = null;
+    articleSummaryRefusedByCap = null;
+    elements.articleSummary.hidden = true;
+}
+
+function articleSummaryPriceTable() {
+    if (articleSummaryPrices === null) {
+        articleSummaryPrices = fetchModelPriceTable(globalThis.fetch);
+        articleSummaryPrices.catch(() => { articleSummaryPrices = null; });
+    }
+    return articleSummaryPrices;
+}
+
+// apiKey is null when no key is held; a cached summary still shows.
+async function startArticleSummary(thread, apiKey) {
+    hideArticleSummary();
+    if (!articleSummaryApplies(thread, DEFAULT_CONFIG)) return;
+    const isCurrent = articleSummaryLatest.start();
+    showArticleSummaryText('Fetching and summarizing the linked article.');
+    const callOpenRouterChat = apiKey === null ? () => { throw new ApiKeyMissingError(); } : makeOpenRouterCallChat({ apiKey });
+    const capUsd = articleSummaryCapInBox();
+    let text;
+    try {
+        const { summary, costUsd } = await summarizeLinkedArticle({ thread, config: selectedRunConfig(), callChat: makeCachedCallChat(callOpenRouterChat, cacheStore),
+            prices: await articleSummaryPriceTable(), capUsd });
+        const overCap = costUsd > capUsd ? ` (This summary cost $${costUsd.toFixed(COST_DIGITS)}, more than the Article summary max of $${capUsd.toFixed(COST_DIGITS)}.)` : '';
+        text = `${summary.fetched ? summary.summary : `Not fetched: ${summary.summary}`}${overCap}`;
+    } catch (error) {
+        if (!(error instanceof ApiKeyMissingError)) console.error(error);
+        if (!isCurrent()) return;
+        if (error instanceof ApiKeyMissingError) {
+            articleSummaryAwaitingKey = thread;
+            showArticleSummaryText('Waiting for an OpenRouter key: the summary starts when a run starts with one.');
+            return;
+        }
+        if (error instanceof ArticleSummaryCapError) articleSummaryRefusedByCap = thread;
+        text = `Unavailable: ${error.message}`;
+    }
+    refreshStorageInfo();
+    if (isCurrent()) showArticleSummaryText(text);
+}
+
+// Keeps the box's cap in localStorage; a summary the old cap refused starts again under the new one.
+function changeArticleSummaryCap() {
+    const capUsd = articleSummaryCapInBox();
+    elements.articleSummaryCap.value = capUsd;
+    localStorage.setItem(CONSTANTS.STORAGE_KEY_ARTICLE_SUMMARY_CAP, String(capUsd));
+    if (articleSummaryRefusedByCap !== null && articleSummaryRefusedByCap === loadedThread) {
+        startArticleSummary(loadedThread, currentApiKey());
+    }
 }
 
 function renderResults(result, comments) {
@@ -5037,7 +5210,7 @@ function renderResults(result, comments) {
     caveats.appendChild(makeElement('p', { text: renderedArticle
         ? 'This is a model interpretation of the selected text, not a poll or fact check. Textual voices are counted once per comparison. One voice may weigh alternatives without endorsing either. A literary speaker does not establish the author\'s personal beliefs. Summary evidence is limited to forty ranked comparisons and their complete supporting passages.'
         : threadCaveat(result.stats.singleCall) }));
-    if (result.articleSummary || result.articleSummaryError) {
+    if (articleSummaryApplies(loadedThread, DEFAULT_CONFIG)) {
         caveats.appendChild(makeElement('p', { text: 'The summary of the linked article is a model summary of the page as OpenRouter fetched it; it can be incomplete.' }));
     }
     for (const text of synthesis ? synthesis.caveats : []) caveats.appendChild(makeElement('p', { text }));
@@ -5046,7 +5219,7 @@ function renderResults(result, comments) {
         narrative.prepend(makeElement('p', { text: 'Complete text processed · ' + voices + ' textual voices · ' + result.comments.length + ' counted passages. Counts reflect the primary speaker and directly attributed voices in this selected text, not a survey.' }));
         caveats.appendChild(makeElement('p', { text: 'Attribution and semantic reviews are model judgments. Unresolved speech and reported paraphrases are shown separately and do not count as direct testimony. Quotation authenticity and factual claims have not been checked.' }));
     }
-    elements.results.replaceChildren(...renderArticleSummary(result), narrative, ...groupBlocks, caveats, comparisons, ...(renderedArticle ? [renderArticleSource(renderedArticle)] : []));
+    elements.results.replaceChildren(narrative, ...groupBlocks, caveats, comparisons, ...(renderedArticle ? [renderArticleSource(renderedArticle)] : []));
     renderUnverifiedAxes(result.unverifiedAxes || [], commentsById);
     elements.unverifiedAxes.open = false;
     comparisons.appendChild(elements.unverifiedAxes);
@@ -5154,6 +5327,9 @@ async function runFromPage({ urlWrite = RUN_URL_WRITE.none, runSelection } = {})
     const apiKey = fullyCached ? currentApiKey() : resolveApiKey();
     if (apiKey === null && !fullyCached) {
         return;
+    }
+    if (apiKey !== null && articleSummaryAwaitingKey === loadedThread) {
+        startArticleSummary(loadedThread, apiKey);
     }
     const writesUrl = urlWrite !== RUN_URL_WRITE.none;
     const selection = writesUrl || runSelection === undefined ? selectedRunUrlParameters() : runSelection;
@@ -5268,6 +5444,7 @@ function showArticleMode(show) {
     elements.frontPageScope.setAttribute('aria-pressed', String(!show && storyScope === 'front'));
     elements.searchAllScope.setAttribute('aria-pressed', String(!show && storyScope === 'search'));
     elements.shareControl.hidden = show;
+    elements.articleSummaryCapControl.hidden = show;
     elements.singleCallRow.hidden = show;
     showSingleCallPickers();
     if (show) {
@@ -5289,6 +5466,7 @@ function resetLoadedSource() {
     elements.threadInfo.textContent = '';
     document.title = APP_TITLE;
     clearResults();
+    hideArticleSummary();
 }
 function selectArticleMode() {
     if (pageBusy()) return;
@@ -5480,6 +5658,7 @@ elements.refreshThread.addEventListener('click', async () => {
     loadThreadFromPage(threadId);
 });
 elements.maxCost.value = DEFAULT_MAX_COST_USD;
+elements.articleSummaryCap.value = storedArticleSummaryCap();
 fillModelOptions(elements.extractionModel, 'extraction', DEFAULT_EXTRACTION_KEY);
 fillModelOptions(elements.consolidationModel, 'consolidation', DEFAULT_CONSOLIDATION_KEY);
 fillModelOptions(elements.scoringModel, 'scoring', DEFAULT_SCORING_KEY);
@@ -5511,6 +5690,7 @@ elements.singleCall.addEventListener('change', () => {
     refitShareAndEstimate();
 });
 elements.maxCost.addEventListener('change', refitShareAndEstimate);
+elements.articleSummaryCap.addEventListener('change', changeArticleSummaryCap);
 // The summary picker's tooltip says whether the selected combination was benchmarked, so every change resyncs it.
 const SUMMARY_PICKER_INDEX = 3;
 modelPickers.forEach((picker, index) => {
