@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-iibXmhVD/GqVN/oj+SYO1bELmBs4ur/wcVunuCs1kB4=' 'sha256-YmkDeEun6hblDF/oE/OBdHcukYk4kGSX8+OOuT57/4s='; style-src 'sha256-tsb7Ao2DTOkPXJlLByeLLz2kV0BcGA13hCfu0X+h22o='; connect-src https://openrouter.ai https://hn.algolia.com https://hacker-news.firebaseio.com; img-src data:; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-f4hUBOXiSxQ2B81rXdngSrLzedCPuRTvNgACSADDs0g=' 'sha256-43Otz2kaQ7AJKpU5E+wXvyrTGymxFpy3RMjok9Y3EAA='; style-src 'sha256-tsb7Ao2DTOkPXJlLByeLLz2kV0BcGA13hCfu0X+h22o='; connect-src https://openrouter.ai https://hn.algolia.com https://hacker-news.firebaseio.com; img-src data:; base-uri 'none'; form-action 'none'">
 <title>Orange Split - For and Against on Hacker News</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 32 32%27%3E%3Crect width=%2732%27 height=%2732%27 fill=%27%23ff6600%27/%3E%3Ctext x=%2716%27 y=%2721%27 font-family=%27sans-serif%27 font-weight=%27bold%27 font-size=%2714%27 text-anchor=%27middle%27 fill=%27white%27%3EOS%3C/text%3E%3C/svg%3E">
 <style>
@@ -271,13 +271,17 @@ button { margin-right: 0.5rem; }
 <script id="core">
 // Core pipeline: no DOM access. Shared by the page script and by Node (tests, scripts/run_node.js).
 
+// The Front page button cycles through FRONT_PAGE_COUNT disjoint pages of FRONT_PAGE_SIZE ranked stories.
+const FRONT_PAGE_SIZE = 30;
+const FRONT_PAGE_COUNT = 3;
+
 const CONSTANTS = Object.freeze({
     APP_NAME: 'Orange Split',
     HN_ITEM_URL: 'https://hn.algolia.com/api/v1/items/',
     HN_CURRENT_ITEM_URL: 'https://hacker-news.firebaseio.com/v0/item/',
     HN_ITEM_PAGE_URL: 'https://news.ycombinator.com/item?id=',
     HN_TOP_STORIES_URL: 'https://hacker-news.firebaseio.com/v0/topstories.json',
-    HN_STORIES_BY_ID_URL: 'https://hn.algolia.com/api/v1/search?hitsPerPage=60&tags=',
+    HN_STORIES_BY_ID_URL: `https://hn.algolia.com/api/v1/search?hitsPerPage=${FRONT_PAGE_SIZE * FRONT_PAGE_COUNT}&tags=`,
     HN_STORY_SEARCH_URL: 'https://hn.algolia.com/api/v1/search?tags=story&hitsPerPage=30&query=',
     OPENROUTER_URL: 'https://openrouter.ai/api/v1/chat/completions',
     OPENROUTER_MODELS_URL: 'https://openrouter.ai/api/v1/models',
@@ -1031,11 +1035,11 @@ async function fetchStories(url, what) {
 }
 
 // HN supplies the ranking; Algolia supplies metadata in one request. Its front_page tag only covers
-// the first page, so fetch the first 60 ranked IDs for the two front-page scopes.
+// the first page, so fetch the ranked IDs of all three front pages (Front page, +1, +2).
 async function fetchFrontPageStories() {
     const ids = await fetchHnJson(CONSTANTS.HN_TOP_STORIES_URL, 'the top stories');
     if (!Array.isArray(ids)) throw new Error('top stories response has no ID array');
-    const rankedIds = [...new Set(ids.filter(id => Number.isSafeInteger(id) && id > 0))].slice(0, 60);
+    const rankedIds = [...new Set(ids.filter(id => Number.isSafeInteger(id) && id > 0))].slice(0, FRONT_PAGE_SIZE * FRONT_PAGE_COUNT);
     if (rankedIds.length === 0) return [];
     const tags = 'story,(' + rankedIds.map(id => 'story_' + id).join(',') + ')';
     const stories = await fetchStories(CONSTANTS.HN_STORIES_BY_ID_URL + encodeURIComponent(tags), 'the front-page stories');
@@ -4453,10 +4457,15 @@ let lastSearch = null;
 let listStories = [];
 let activeIndex = -1;
 let storyScope = 'front';
-let frontPageLimit = 30;
+let frontPageIndex = 0;
 
 function frontPageLabel() {
-    return frontPageLimit === 60 ? `${HEADER_HOME_PAGE} +1` : HEADER_HOME_PAGE;
+    return frontPageIndex === 0 ? HEADER_HOME_PAGE : `${HEADER_HOME_PAGE} +${frontPageIndex}`;
+}
+
+function frontPageStories() {
+    const start = frontPageIndex * FRONT_PAGE_SIZE;
+    return homePageStories.slice(start, start + FRONT_PAGE_SIZE);
 }
 
 function setStoryStatus(element, kind, text) {
@@ -4617,7 +4626,7 @@ function refreshList() {
             return;
         }
         const needle = text.toLowerCase();
-        showList(homePageStories.slice(0, frontPageLimit).filter(story => story.title.toLowerCase().includes(needle)), frontPageLabel);
+        showList(frontPageStories().filter(story => story.title.toLowerCase().includes(needle)), frontPageLabel);
         return;
     }
     if (text.length < SEARCH_MIN_CHARS) {
@@ -4634,7 +4643,7 @@ function refreshList() {
 
 function selectStoryScope(scope, { focus = true, toggle = false } = {}) {
     if (pageBusy()) return;
-    frontPageLimit = toggle && scope === 'front' && storyScope === 'front' && !articleModeSelected && frontPageLimit === 30 ? 60 : 30;
+    frontPageIndex = toggle && scope === 'front' && storyScope === 'front' && !articleModeSelected ? (frontPageIndex + 1) % FRONT_PAGE_COUNT : 0;
     if (articleModeSelected) { resetLoadedSource(); updateEstimate(); }
     storyScope = scope;
     showArticleMode(false);
@@ -4642,9 +4651,8 @@ function selectStoryScope(scope, { focus = true, toggle = false } = {}) {
     elements.frontPageScope.setAttribute('aria-pressed', String(frontPage));
     elements.searchAllScope.setAttribute('aria-pressed', String(!frontPage));
     elements.frontPageScope.textContent = frontPageLabel();
-    elements.frontPageScope.title = frontPage
-        ? `Show the first ${frontPageLimit === 30 ? 60 : 30} stories`
-        : 'Show the first 30 stories';
+    const nextIndex = frontPage ? (frontPageIndex + 1) % FRONT_PAGE_COUNT : 0;
+    elements.frontPageScope.title = `Show stories ${nextIndex * FRONT_PAGE_SIZE + 1}-${(nextIndex + 1) * FRONT_PAGE_SIZE}`;
     elements.threadId.placeholder = frontPage ? `filter ${frontPageLabel().toLowerCase()}, or id` : 'search all stories, or id';
     searchLatest.cancel();
     closeList();
