@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-f4hUBOXiSxQ2B81rXdngSrLzedCPuRTvNgACSADDs0g=' 'sha256-eyKE9RcjQfcFwdBjmLLvf+Duf/PxfUlKt4fwyEzdDro='; style-src 'sha256-h33gV0q7D3HRLHMqaPDI8Cn+YYeJPgTRkJENotFcwNE='; connect-src https://openrouter.ai https://hn.algolia.com https://hacker-news.firebaseio.com; img-src data:; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-f4hUBOXiSxQ2B81rXdngSrLzedCPuRTvNgACSADDs0g=' 'sha256-eyKE9RcjQfcFwdBjmLLvf+Duf/PxfUlKt4fwyEzdDro='; style-src 'sha256-i1TWqBTTb7KNmyHflgBDJwWxq0RovAoJfun566x2lro='; connect-src https://openrouter.ai https://hn.algolia.com https://hacker-news.firebaseio.com; img-src data:; base-uri 'none'; form-action 'none'">
 <title>Orange Split - For and Against on Hacker News</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 32 32%27%3E%3Crect width=%2732%27 height=%2732%27 fill=%27%23ff6600%27/%3E%3Ctext x=%2716%27 y=%2721%27 font-family=%27sans-serif%27 font-weight=%27bold%27 font-size=%2714%27 text-anchor=%27middle%27 fill=%27white%27%3EOS%3C/text%3E%3C/svg%3E">
 <style>
@@ -27,15 +27,18 @@ input[type="number"] { width: 5em; }
 .min-comments-arrows { display: flex; flex-direction: column; }
 .min-comments-arrows button { margin: 0; padding: 0 0.3em; font-size: 10px; line-height: 1; flex: 1; }
 .row { margin: 1em 0; }
-.thread-controls { display: flex; align-items: center; flex-wrap: wrap; gap: 0.4rem; }
+.thread-controls { position: relative; display: flex; align-items: center; flex-wrap: wrap; gap: 0.4rem; }
 .thread-controls label, .thread-controls .story-scope { margin-right: 0; }
 .story-scope { display: inline-flex; margin-right: 1rem; vertical-align: middle; }
 .story-scope button { margin: 0; border: 1px solid #777; background: #fff; }
 .story-scope button:first-child { border-radius: 3px 0 0 3px; }
 .story-scope button:last-child { border-left: 0; border-radius: 0 3px 3px 0; }
 .story-scope button[aria-pressed="true"] { background: #333; color: #fff; }
-#thread-picker { position: relative; display: inline-block; vertical-align: middle; }
-#story-list { position: absolute; left: 0; top: 100%; z-index: 1; width: calc(100vw - 2rem); margin: 0; padding: 0; list-style: none; max-height: calc(100vh - 7rem); overflow: auto; background: #fff; border: 1px solid #999; box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2); }
+#thread-picker { display: inline-block; vertical-align: middle; }
+/* The list spans .thread-controls, whose width excludes the page's vertical scrollbar; a 100vw width
+   includes it and put the list's right edge under the scrollbar. top is left auto, so the list starts
+   just below the Thread box. */
+#story-list { position: absolute; left: 0; right: 0; z-index: 1; margin: 0; padding: 0; list-style: none; max-height: calc(100vh - 7rem); overflow: auto; background: #fff; border: 1px solid #999; box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2); }
 #story-list li { cursor: pointer; }
 #story-list li.header { color: #666; font-size: 0.9em; cursor: default; background: #eee; }
 #story-list li.active { background: #cde; }
@@ -53,7 +56,7 @@ input[type="number"] { width: 5em; }
 .story-status.ready { color: #176b35; font-weight: bold; }
 .story-status.partial { color: #24588f; }
 @media (max-width: 48rem) {
-    #story-list { left: calc(2px - 1rem); width: calc(100vw - 4px); box-sizing: border-box; }
+    #story-list { left: calc(2px - 1rem); right: calc(2px - 1rem); }
     .story-option { white-space: normal; overflow-wrap: anywhere; }
     .story-text { flex-direction: column; align-items: stretch; gap: 0.15rem; }
     .story-title { min-width: 0; }
