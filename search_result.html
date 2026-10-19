@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Story list row ideas</title>
+<style>
+body { font-family: system-ui, sans-serif; margin: 0.5rem 1rem 3rem; max-width: 70rem; }
+h1 { font-size: 1.4rem; margin: 0 0 0.5rem; }
+h2 { font-size: 1.1rem; margin: 2rem 0 0.3rem; }
+p { margin: 0.3rem 0; line-height: 1.4; }
+.note { color: #444; }
+.pros-cons { margin: 0.3rem 0 0.5rem 1.2rem; padding: 0; line-height: 1.4; }
+.click-log { font-size: 0.9em; color: #176b35; min-height: 1.3em; margin: 0.3rem 0; }
+.click-log.open { color: #8a5400; }
+
+/* Shared list look, copied from hn_polarization.html */
+.story-list { margin: 0; padding: 0; list-style: none; background: #fff; border: 1px solid #999; box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2); }
+.story-list li { cursor: pointer; }
+.story-list li.header { color: #666; font-size: 0.9em; cursor: default; background: #eee; }
+.story-list li.active { background: #cde; }
+.story-list li.preprocessed .story-title { font-weight: bold; }
+.story-option { display: flex; align-items: center; gap: 0.35rem; padding: 0.35rem 0.5rem; white-space: nowrap; }
+.story-option.header { display: block; }
+.story-title { flex: 0 1 auto; min-width: 4rem; overflow: hidden; text-overflow: ellipsis; }
+.story-title a { color: #0645ad; cursor: alias; }
+.story-detail { flex: 0 0 auto; color: #666; font-size: 12px; }
+.story-status { color: #666; }
+.story-status.ready { color: #176b35; font-weight: bold; }
+
+/* 5. Trailing short link */
+.trailing-link { flex: 0 0 auto; margin-left: auto; padding: 0.15rem 0.5rem; font-size: 0.9em; color: #0645ad; cursor: alias; border-radius: 3px; }
+.trailing-link:hover { background: #e8eef8; text-decoration: underline; }
+
+/* 6. Right-hand button column */
+.variant-6 .story-option { padding-right: 0; }
+.variant-6 .spacer { flex: 1 1 auto; }
+.hn-cell { flex: 0 0 auto; align-self: stretch; display: flex; align-items: center; padding: 0 0.8rem; margin-left: 0.5rem; border-left: 1px solid #ddd; color: #fff; background: #ff6600; font-weight: bold; font-size: 0.85em; text-decoration: none; cursor: alias; }
+.hn-cell:hover { background: #e65c00; }
+.story-list li.header .hn-head { float: right; padding-right: 0.5rem; }
+
+/* 7. Comment count is the link */
+.count-link { color: #0645ad; cursor: alias; font-size: 1rem; padding: 0.1rem 0.25rem; }
+.count-link:hover { background: #e8eef8; }
+
+/* 8. Leading link in a gutter */
+.gutter-link { flex: 0 0 auto; display: inline-flex; align-items: center; justify-content: center; width: 1.6rem; height: 1.6rem; border-radius: 3px; background: #ff6600; color: #fff; font-weight: bold; font-size: 0.85em; text-decoration: none; cursor: alias; }
+.gutter-link:hover { background: #e65c00; }
+
+/* 9. Two-line rows */
+.variant-9 .story-option { flex-direction: column; align-items: stretch; gap: 0.15rem; white-space: normal; padding: 0.45rem 0.6rem; }
+.variant-9 .title-line { display: flex; gap: 0.5rem; align-items: baseline; }
+.variant-9 .story-title { flex: 1 1 auto; overflow: visible; }
+.variant-9 .story-detail { font-size: 13px; }
+.variant-9 .trailing-link { margin-left: 0; }
+
+/* 10. Link appears on the hovered or highlighted row */
+.variant-10 .trailing-link { visibility: hidden; }
+.variant-10 li.active .trailing-link, .variant-10 li:hover .trailing-link { visibility: visible; }
+
+/* 11. Keyboard shortcut */
+.variant-11-box { display: flex; gap: 0.4rem; align-items: center; margin-bottom: 0.3rem; }
+.variant-11-box input { width: 16rem; }
+kbd { font-family: inherit; font-size: 0.85em; border: 1px solid #aaa; border-bottom-width: 2px; border-radius: 3px; padding: 0 0.3em; background: #f7f7f7; }
+.variant-11 .key-hint { flex: 0 0 auto; margin-left: auto; color: #666; font-size: 12px; visibility: hidden; }
+.variant-11 li.active .key-hint { visibility: visible; }
+
+@media (max-width: 40rem) {
+    .story-option { flex-wrap: wrap; white-space: normal; }
+    .story-title { min-width: 0; }
+}
+</style>
+</head>
+<body>
+<h1>Story list row ideas</h1>
+<p class="note">Each list below is a mockup of the Thread box's story list in hn_polarization.html, filled with sample stories. A click on a row writes what the click would do under the list instead of loading a thread or opening Hacker News. In every idea except 4, a click anywhere on the row other than the Hacker News link selects the story, and the title is plain text.</p>
+
+<h2>4. Current layout (baseline)</h2>
+<p class="note">The title is the Hacker News link; the 12px detail text and the padding are the only areas that select the story.</p>
+<ul class="story-list" data-variant="4"></ul>
+<p class="click-log" data-log="4"></p>
+
+<h2>5. Short "discuss" link at the end of the row</h2>
+<ul class="pros-cons">
+<li>The whole row, including the title, selects the story.</li>
+<li>The link sits right-aligned in normal-size text with padding, so it is a deliberate target.</li>
+<li>On a narrow screen the link wraps to the end of the detail line.</li>
+</ul>
+<ul class="story-list" data-variant="5"></ul>
+<p class="click-log" data-log="5"></p>
+
+<h2>6. Orange "HN" column at the right edge</h2>
+<ul class="pros-cons">
+<li>A full-height cell at the row's right edge, in Hacker News orange, is the only link; it is the easiest link target to hit and the hardest to hit by accident.</li>
+<li>The column lines up across rows, so the eye finds it without reading.</li>
+<li>It costs about 3rem of row width.</li>
+</ul>
+<ul class="story-list variant-6" data-variant="6"></ul>
+<p class="click-log" data-log="6"></p>
+
+<h2>7. The comment count is the link</h2>
+<ul class="pros-cons">
+<li>Hacker News itself uses the comment count as the link to the discussion, so the convention is familiar.</li>
+<li>The count moves out of the small detail text into normal-size text so that it is easy to click.</li>
+<li>The link has no fixed position; its horizontal place depends on the title's length.</li>
+</ul>
+<ul class="story-list" data-variant="7"></ul>
+<p class="click-log" data-log="7"></p>
+
+<h2>8. "Y" link at the start of the row</h2>
+<ul class="pros-cons">
+<li>A square in a fixed left gutter opens Hacker News; everything to its right selects the story.</li>
+<li>The link column lines up across rows and sits next to the title.</li>
+<li>It sits where the pointer often rests while moving down the list, so a stray click opens a tab.</li>
+</ul>
+<ul class="story-list" data-variant="8"></ul>
+<p class="click-log" data-log="8"></p>
+
+<h2>9. Two-line rows</h2>
+<ul class="pros-cons">
+<li>The title takes the first line in full, without truncation, followed by the "discuss" link; the detail moves to a second line at 13px.</li>
+<li>Each row is taller, so each row is a bigger selection target, and the list shows fewer stories per screen.</li>
+<li>This is the layout that hn_polarization.html already uses on a narrow screen.</li>
+</ul>
+<ul class="story-list variant-9" data-variant="9"></ul>
+<p class="click-log" data-log="9"></p>
+
+<h2>10. Link shown only on the hovered or highlighted row</h2>
+<ul class="pros-cons">
+<li>Idea 5, with the link hidden on every row except the one under the pointer or highlighted with the arrow keys.</li>
+<li>The list looks quieter, and the link appears where the pointer already is.</li>
+<li>On a touch screen there is no hover, so the link appears only after a row is highlighted.</li>
+</ul>
+<ul class="story-list variant-10" data-variant="10"></ul>
+<p class="click-log" data-log="10"></p>
+
+<h2>11. Keyboard shortcut for the highlighted row</h2>
+<ul class="pros-cons">
+<li>Arrow keys move the highlight; <kbd>Enter</kbd> selects the story and <kbd>Ctrl</kbd>+<kbd>Enter</kbd> opens the Hacker News discussion.</li>
+<li>The highlighted row shows the shortcut as a hint. This idea combines with any of ideas 5 to 10.</li>
+</ul>
+<div class="variant-11-box"><input id="variant-11-input" type="text" placeholder="click here, then use the arrow keys"></div>
+<ul class="story-list variant-11" data-variant="11"></ul>
+<p class="click-log" data-log="11"></p>
+
+<script>
+const HN_ITEM_PAGE_URL = 'https://news.ycombinator.com/item?id=';
+const HEADER_TEXT = 'Front page';
+
+// Sample stories; titles, counts, and ids are made up for the mockup.
+const SAMPLE_STORIES = [
+    { id: 45612345, title: 'Show HN: A tiny assembler that fits in a boot sector', comments: 245, time: '2026-10-19 09:24 AM', status: 'not stored', ready: false },
+    { id: 45611002, title: 'The hidden cost of retries in distributed systems', comments: 132, time: '2026-10-19 07:51 AM', status: 'saved result', ready: true },
+    { id: 45609876, title: 'Why my RS-232 link dropped bytes at 115200 baud, and the fix', comments: 98, time: '2026-10-19 06:02 AM', status: 'not stored', ready: false },
+    { id: 45608311, title: 'Ask HN: What is the most useful script you have written for your own machine?', comments: 412, time: '2026-10-18 11:40 PM', status: 'fully cached calls', ready: true },
+    { id: 45607420, title: 'A practical guide to SQLite write-ahead logging', comments: 61, time: '2026-10-18 09:15 PM', status: 'snapshot only', ready: false },
+];
+
+function makeElement(tag, className, text) {
+    const element = document.createElement(tag);
+    if (className) element.className = className;
+    if (text !== undefined) element.textContent = text;
+    return element;
+}
+
+function logClick(variant, kind, story) {
+    const log = document.querySelector(`[data-log="${variant}"]`);
+    const action = kind === 'open' ? 'Opens the Hacker News discussion in a new tab' : 'Selects the story for analysis';
+    log.className = `click-log ${kind}`;
+    log.textContent = `${action}: "${story.title}" (id ${story.id})`;
+}
+
+// A link that reports the click instead of opening Hacker News, and does not select the row.
+function makeHnLink(variant, story, className, text, title) {
+    const link = makeElement('a', className, text);
+    link.href = HN_ITEM_PAGE_URL + story.id;
+    link.title = title;
+    link.addEventListener('mousedown', event => event.stopPropagation());
+    link.addEventListener('click', event => {
+        event.preventDefault();
+        event.stopPropagation();
+        logClick(variant, 'open', story);
+    });
+    return link;
+}
+
+function detailText(story, includeCount) {
+    const countPart = includeCount ? `${story.comments} comments, ` : '';
+    return `${countPart}${story.time}, id ${story.id}; `;
+}
+
+function makeDetail(story, includeCount) {
+    const detail = makeElement('span', 'story-detail', detailText(story, includeCount));
+    detail.append(makeElement('span', `story-status${story.ready ? ' ready' : ''}`, story.status));
+    return detail;
+}
+
+const ROW_BUILDERS = {
+    4: (story, variant) => {
+        const title = makeElement('span', 'story-title');
+        title.append(makeHnLink(variant, story, '', story.title, 'Open the Hacker News post in a new tab'));
+        return [title, makeDetail(story, true)];
+    },
+    5: (story, variant) => [
+        makeElement('span', 'story-title', story.title),
+        makeDetail(story, true),
+        makeHnLink(variant, story, 'trailing-link', 'discuss ↗', 'Open the Hacker News discussion in a new tab'),
+    ],
+    6: (story, variant) => [
+        makeElement('span', 'story-title', story.title),
+        makeDetail(story, true),
+        makeElement('span', 'spacer'),
+        makeHnLink(variant, story, 'hn-cell', 'HN ↗', 'Open the Hacker News discussion in a new tab'),
+    ],
+    7: (story, variant) => [
+        makeElement('span', 'story-title', story.title),
+        makeHnLink(variant, story, 'count-link', `${story.comments} comments`, 'Open the Hacker News discussion in a new tab'),
+        makeDetail(story, false),
+    ],
+    8: (story, variant) => [
+        makeHnLink(variant, story, 'gutter-link', 'Y', 'Open the Hacker News discussion in a new tab'),
+        makeElement('span', 'story-title', story.title),
+        makeDetail(story, true),
+    ],
+    9: (story, variant) => {
+        const titleLine = makeElement('span', 'title-line');
+        titleLine.append(
+            makeElement('span', 'story-title', story.title),
+            makeHnLink(variant, story, 'trailing-link', 'discuss ↗', 'Open the Hacker News discussion in a new tab'),
+        );
+        return [titleLine, makeDetail(story, true)];
+    },
+    10: (story, variant) => ROW_BUILDERS[5](story, variant),
+    11: story => [
+        makeElement('span', 'story-title', story.title),
+        makeDetail(story, true),
+        makeElement('span', 'key-hint', 'Enter selects, Ctrl+Enter opens HN'),
+    ],
+};
+
+function setActive(list, row) {
+    for (const other of list.querySelectorAll('li.active')) other.classList.remove('active');
+    if (row) row.classList.add('active');
+}
+
+for (const list of document.querySelectorAll('.story-list')) {
+    const variant = Number(list.dataset.variant);
+    const header = makeElement('li', 'header story-option', HEADER_TEXT);
+    if (variant === 6) header.append(makeElement('span', 'hn-head', 'discussion'));
+    list.append(header);
+    for (const story of SAMPLE_STORIES) {
+        const row = makeElement('li', `story-option${story.ready ? ' preprocessed' : ''}`);
+        row.append(...ROW_BUILDERS[variant](story, variant));
+        row.addEventListener('mousedown', () => logClick(variant, 'select', story));
+        row.addEventListener('mouseenter', () => setActive(list, row));
+        list.append(row);
+    }
+}
+
+// 11: arrow keys move the highlight, Enter selects, Ctrl+Enter opens the discussion.
+const keyboardInput = document.getElementById('variant-11-input');
+const keyboardList = document.querySelector('[data-variant="11"]');
+let keyboardIndex = -1;
+keyboardInput.addEventListener('keydown', event => {
+    const rows = [...keyboardList.querySelectorAll('li:not(.header)')];
+    if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
+        event.preventDefault();
+        const step = event.key === 'ArrowDown' ? 1 : -1;
+        keyboardIndex = (keyboardIndex + step + rows.length) % rows.length;
+        setActive(keyboardList, rows[keyboardIndex]);
+    } else if (event.key === 'Enter' && keyboardIndex >= 0) {
+        event.preventDefault();
+        logClick(11, event.ctrlKey ? 'open' : 'select', SAMPLE_STORIES[keyboardIndex]);
+    }
+});
+</script>
+</body>
+</html>
