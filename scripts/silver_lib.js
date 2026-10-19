@@ -107,7 +107,7 @@ function makeModelCallChat({ apiKey, ledger, cacheDirectory }) {
         }
         const startedAt = Date.now();
         try {
-            const response = await direct(call);
+            const response = await direct({ ...call, costLimit: core.COST_LIMIT.benchmarkLedger });
             ledger.spentUsd += response.usage.cost;
             return { ...response, usage: { ...response.usage, seconds: (Date.now() - startedAt) / 1000 } };
         } catch (error) {

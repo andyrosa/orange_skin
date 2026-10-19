@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-Zj0s8qU3So2+KBVimorO8oRxUbix/Q8fL3gRAgcb2l8=' 'sha256-IW9BzmukSvC34bf8dr0G4vNhzmPZ8uMw2Hf6GpTLidY='; style-src 'sha256-Trj6Ru7pB5QxXjhptOB5x95qrn2hTZjAdccLSgc/BZ4='; connect-src https://openrouter.ai https://hn.algolia.com https://hacker-news.firebaseio.com; img-src data:; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-XDVvCRrXiH6wB4B/7Z2SYFsYqjIhx0OrPX9lnSGRYs0=' 'sha256-IW9BzmukSvC34bf8dr0G4vNhzmPZ8uMw2Hf6GpTLidY='; style-src 'sha256-Trj6Ru7pB5QxXjhptOB5x95qrn2hTZjAdccLSgc/BZ4='; connect-src https://openrouter.ai https://hn.algolia.com https://hacker-news.firebaseio.com; img-src data:; base-uri 'none'; form-action 'none'">
 <title>Orange Split - For and Against on Hacker News</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 32 32%27%3E%3Crect width=%2732%27 height=%2732%27 fill=%27%23ff6600%27/%3E%3Ctext x=%2716%27 y=%2721%27 font-family=%27sans-serif%27 font-weight=%27bold%27 font-size=%2714%27 text-anchor=%27middle%27 fill=%27white%27%3EOS%3C/text%3E%3C/svg%3E">
 <style>
@@ -1444,7 +1444,7 @@ function fitArticleSummaryCall(call, prices, capUsd) {
     if (!(outputTokens >= ARTICLE_SUMMARY_MIN_OUTPUT_TOKENS)) {
         throw new ArticleSummaryCapError(`the cap of $${capUsd.toFixed(COST_DIGITS)} leaves ${Math.max(0, outputTokens)} output tokens for ${call.model}, fewer than ${ARTICLE_SUMMARY_MIN_OUTPUT_TOKENS}; raise Article summary max`);
     }
-    return { ...call, maxTokens: outputTokens };
+    return { ...call, maxTokens: outputTokens, costLimit: COST_LIMIT.articleSummaryCap };
 }
 
 // What a response's call cost when it was made; a cached replay costs nothing now but reports its original cost.
@@ -2591,10 +2591,22 @@ async function exchangeOpenRouterCode({ code, verifier, fetchImpl }) {
     return data.key;
 }
 
+// What limits a call's cost, which the layer that limits it stamps on the call as costLimit: the run's spending
+// cap (makeBudgetedCallChat), the article summary cap (fitArticleSummaryCall), or the benchmark ledger
+// (scripts/silver_lib.js).
+const COST_LIMIT = Object.freeze({ runBudget: 'run budget', articleSummaryCap: 'article summary cap', benchmarkLedger: 'benchmark ledger' });
+const COST_LIMIT_NAMES = Object.freeze(Object.values(COST_LIMIT));
+
 // The pipeline's callChat over OpenRouter with one key; the signal the pipeline stamps on each call
-// aborts in-flight requests.
+// aborts in-flight requests. A call that names no cost limit is refused before it is sent, so a new call path
+// cannot spend without one.
 function makeOpenRouterCallChat({ apiKey }) {
-    return call => callOpenRouter({ apiKey, request: call, signal: call.signal });
+    return async call => {
+        if (!COST_LIMIT_NAMES.includes(call.costLimit)) {
+            throw new Error(`${call.stage} call to ${call.model} names no cost limit (costLimit is ${JSON.stringify(call.costLimit)}), so it was not sent`);
+        }
+        return callOpenRouter({ apiKey, request: call, signal: call.signal });
+    };
 }
 
 // ---------------------------------------------------------------------------
@@ -2701,7 +2713,7 @@ function makeBudgetedCallChat(callChat, loadPrices, limitUsd) {
         }
         reserved += allowance;
         try {
-            const response = await callChat(call);
+            const response = await callChat({ ...call, costLimit: COST_LIMIT.runBudget });
             if (validCost(response.usage?.cost)) spent += response.usage.cost;
             else unknownCost = call.stage;
             return response;
@@ -3414,7 +3426,7 @@ if (typeof module !== 'undefined' && module.exports) {
         isThreadId, fetchThreadItem, flattenThread, threadShare, createArticleSource, indexCommentsById, makeExtractBatches,
         buildExtractMessages, buildSynthesisMessages, synthesisTextParts, parseScoreResponse, parseStanceKey, flipStance, axisPeople,
         axisMetaText, formatElapsed, formatProgress, formatRunCost, formatRunSummary,
-        makeOpenRouterCallChat, fetchModelPriceTable, makeBudgetedCallChat, makeCachedCallChat, runPipeline, InvalidResponseError, TruncationError,
+        makeOpenRouterCallChat, COST_LIMIT, fetchModelPriceTable, makeBudgetedCallChat, makeCachedCallChat, runPipeline, InvalidResponseError, TruncationError,
         SINGLE_CALL_MODELS, singleCallEntry, SINGLE_CALL_SCHEMA, buildSingleCallMessages, parseSingleCallResponse,
     };
 }
