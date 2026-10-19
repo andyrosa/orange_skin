@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-f4hUBOXiSxQ2B81rXdngSrLzedCPuRTvNgACSADDs0g=' 'sha256-eyKE9RcjQfcFwdBjmLLvf+Duf/PxfUlKt4fwyEzdDro='; style-src 'sha256-e0vj0RabQFC1dpcdQDuc8/JNBOURiSquVTme0pj47ak='; connect-src https://openrouter.ai https://hn.algolia.com https://hacker-news.firebaseio.com; img-src data:; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-y4HWTAOwe2+7GgirOQGN1cN/Po4SoxDAQd3KRbmXSF0=' 'sha256-eyKE9RcjQfcFwdBjmLLvf+Duf/PxfUlKt4fwyEzdDro='; style-src 'sha256-e0vj0RabQFC1dpcdQDuc8/JNBOURiSquVTme0pj47ak='; connect-src https://openrouter.ai https://hn.algolia.com https://hacker-news.firebaseio.com; img-src data:; base-uri 'none'; form-action 'none'">
 <title>Orange Split - For and Against on Hacker News</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 32 32%27%3E%3Crect width=%2732%27 height=%2732%27 fill=%27%23ff6600%27/%3E%3Ctext x=%2716%27 y=%2721%27 font-family=%27sans-serif%27 font-weight=%27bold%27 font-size=%2714%27 text-anchor=%27middle%27 fill=%27white%27%3EOS%3C/text%3E%3C/svg%3E">
 <style>
@@ -1383,7 +1383,7 @@ function parseSingleCallResponse(json, validIds) {
 // the link's host and one fetch, so it summarizes the article and not other pages.
 const ARTICLE_SUMMARY_SYSTEM_PROMPT = `You summarize the page a Hacker News submission links to, for a reader about to see how the discussion divides.
 
-Fetch the URL the user gives with the web fetch tool, once. Then state in 80 to 150 words what the page itself reports or argues, attributed to the page. For an article, give its main claims, findings, or announcements. For a page that is not an article, such as a product home page, a repository, or documentation, say what the product or project is, what it does, and the main features or claims the page states. Use fewer words only when the fetched text has less to say. Do not judge the claims, and do not describe the discussion. Use only the fetched text. If the fetch fails or returns no page text, set fetched to false and give the reason as the summary.
+Fetch the URL the user gives with the web fetch tool, once. Then state in 80 to 150 words what the page itself reports or argues, attributed to the page. For an article, give its main claims, findings, or announcements. For a page that is not an article, such as a product home page, a repository, or documentation, say what the product or project is, what it does, and the main features or claims the page states. Use fewer words only when the fetched text has less to say. Do not judge the claims, and do not describe the discussion. Use only the fetched text. If the fetch fails, or the fetched text has no readable content about the page's subject (for example only markup, scripts, navigation, or a sign-in or cookie wall), set fetched to false and give the reason as the summary; do not write a summary from the little that is readable.
 
 Return JSON matching the schema and nothing else.`;
 const ARTICLE_SUMMARY_SCHEMA = {
