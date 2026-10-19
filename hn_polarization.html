@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-XDVvCRrXiH6wB4B/7Z2SYFsYqjIhx0OrPX9lnSGRYs0=' 'sha256-IW9BzmukSvC34bf8dr0G4vNhzmPZ8uMw2Hf6GpTLidY='; style-src 'sha256-Trj6Ru7pB5QxXjhptOB5x95qrn2hTZjAdccLSgc/BZ4='; connect-src https://openrouter.ai https://hn.algolia.com https://hacker-news.firebaseio.com; img-src data:; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-iibXmhVD/GqVN/oj+SYO1bELmBs4ur/wcVunuCs1kB4=' 'sha256-YmkDeEun6hblDF/oE/OBdHcukYk4kGSX8+OOuT57/4s='; style-src 'sha256-tsb7Ao2DTOkPXJlLByeLLz2kV0BcGA13hCfu0X+h22o='; connect-src https://openrouter.ai https://hn.algolia.com https://hacker-news.firebaseio.com; img-src data:; base-uri 'none'; form-action 'none'">
 <title>Orange Split - For and Against on Hacker News</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 32 32%27%3E%3Crect width=%2732%27 height=%2732%27 fill=%27%23ff6600%27/%3E%3Ctext x=%2716%27 y=%2721%27 font-family=%27sans-serif%27 font-weight=%27bold%27 font-size=%2714%27 text-anchor=%27middle%27 fill=%27white%27%3EOS%3C/text%3E%3C/svg%3E">
 <style>
@@ -92,6 +92,7 @@ button { margin-right: 0.5rem; }
 #status.error { color: #b00020; }
 #article-summary { margin-top: 1rem; max-width: 70rem; line-height: 1.5; }
 #article-summary-cap { width: 5em; }
+.article-summary-meta { color: #666; font-size: 14px; font-weight: normal; }
 #results { margin-top: 1rem; }
 .narrative { max-width: 70rem; line-height: 1.5; }
 .group-toggle { margin: 0; padding: 0; border: 0; background: none; color: inherit; font: inherit; text-align: left; cursor: pointer; }
@@ -259,7 +260,7 @@ button { margin-right: 0.5rem; }
 <ul id="cached-results-list" hidden></ul>
 <div id="status"></div>
 <details id="warnings" hidden><summary></summary><ul></ul></details>
-<section id="article-summary" hidden><h2>Article summary</h2><p></p></section>
+<section id="article-summary" hidden><h2>Article summary<span class="article-summary-meta"></span></h2><p></p></section>
 <div id="results"></div>
 <details id="unverified-axes" hidden>
 <summary></summary>
@@ -1366,9 +1367,9 @@ function parseSingleCallResponse(json, validIds) {
 
 // The linked article's summary. The summary model fetches the page through OpenRouter's web fetch tool, limited to
 // the link's host and one fetch, so it summarizes the article and not other pages.
-const ARTICLE_SUMMARY_SYSTEM_PROMPT = `You summarize the article a Hacker News submission links to, for a reader about to see how the discussion divides.
+const ARTICLE_SUMMARY_SYSTEM_PROMPT = `You summarize the page a Hacker News submission links to, for a reader about to see how the discussion divides.
 
-Fetch the URL the user gives with the web fetch tool, once. Then state in at most 150 words what the article itself reports or argues: its main claims, findings, or announcements, attributed to the article. Do not judge the claims, and do not describe the discussion. Use only the fetched text. If the fetch fails or returns no article text, set fetched to false and give the reason as the summary.
+Fetch the URL the user gives with the web fetch tool, once. Then state in 80 to 150 words what the page itself reports or argues, attributed to the page. For an article, give its main claims, findings, or announcements. For a page that is not an article, such as a product home page, a repository, or documentation, say what the product or project is, what it does, and the main features or claims the page states. Use fewer words only when the fetched text has less to say. Do not judge the claims, and do not describe the discussion. Use only the fetched text. If the fetch fails or returns no page text, set fetched to false and give the reason as the summary.
 
 Return JSON matching the schema and nothing else.`;
 const ARTICLE_SUMMARY_SCHEMA = {
@@ -1385,10 +1386,13 @@ const ARTICLE_SUMMARY_SCHEMA = {
 };
 // The most article text one fetch passes to the model.
 const ARTICLE_FETCH_MAX_TOKENS = 30000;
-// OpenRouter's own fetch engine truncates the page to max_content_tokens and charges nothing beyond the tokens;
-// a provider's native fetch, which the default engine prefers, does not truncate, which would leave the fetched
-// text, and so the cost, unbounded.
-const ARTICLE_FETCH_ENGINE = 'openrouter';
+// Exa extracts a page's readable text and truncates it to max_content_tokens, for a fee of ARTICLE_FETCH_FEE_USD per
+// fetch. A provider's native fetch, which the default engine prefers, does not truncate, which would leave the
+// fetched text, and so the cost, unbounded. OpenRouter's own engine truncates but passed about 38,000 tokens of text
+// that the model could not read for https://linear.app/, whose summary then said almost nothing; Exa passed about
+// 1,800 readable tokens for that page.
+const ARTICLE_FETCH_ENGINE = 'exa';
+const ARTICLE_FETCH_FEE_USD = 0.001;
 
 function buildArticleSummaryCall(config, thread) {
     return {
@@ -1438,7 +1442,7 @@ function fitArticleSummaryCall(call, prices, capUsd) {
     if (price === undefined) throw new Error(`No OpenRouter price for ${call.model}; the article summary cap cannot bound this call`);
     const promptPrice = Math.max(price.prompt, price.inputCacheWrite);
     const passes = ARTICLE_SUMMARY_MODEL_PASSES;
-    const fixedUsd = (passes * promptTokenBound(call) + ARTICLE_FETCH_MAX_TOKENS) * promptPrice + passes * price.request;
+    const fixedUsd = (passes * promptTokenBound(call) + ARTICLE_FETCH_MAX_TOKENS) * promptPrice + passes * price.request + ARTICLE_FETCH_FEE_USD;
     const perOutputTokenUsd = passes * price.completion + (passes - 1) * promptPrice;
     const outputTokens = Math.min(call.maxTokens, Math.floor((capUsd - fixedUsd) / perOutputTokenUsd));
     if (!(outputTokens >= ARTICLE_SUMMARY_MIN_OUTPUT_TOKENS)) {
@@ -1454,12 +1458,23 @@ function billedCost(usage) {
     return cost;
 }
 
+// The article summary call as the page sends it first: the selected models' call, fitted to capUsd. The page's
+// cache check builds it to find the summary's cache entry.
+function fittedArticleSummaryCall({ thread, config, prices, capUsd }) {
+    return fitArticleSummaryCall(buildArticleSummaryCall({ ...DEFAULT_CONFIG, ...config }, thread), prices, capUsd);
+}
+
 // The linked article's summary outside a pipeline run, with the one format repair a run gives it, and what its
-// calls cost. The page calls it when a thread loads; callChat is a cached OpenRouter callChat. Each call's output
-// ceiling is fitted to what the calls before it left of capUsd.
+// calls cost and took. The page calls it when a thread loads; callChat is a cached OpenRouter callChat whose
+// responses carry usage.seconds, the call's duration, which the cache keeps. Each call's output ceiling is fitted
+// to what the calls before it left of capUsd. The result's costUsd and seconds are the calls' original figures,
+// and cached is true when every response came from the cache; seconds is null when a response has no duration.
+// A failure carries the cost spent before it as error.articleSummaryCostUsd.
 async function summarizeLinkedArticle({ thread, config, callChat, prices, capUsd }) {
     const call = buildArticleSummaryCall({ ...DEFAULT_CONFIG, ...config }, thread);
     let costUsd = 0;
+    let seconds = 0;
+    let cached = true;
     const summarize = async request => {
         const fitted = fitArticleSummaryCall(request, prices, capUsd - costUsd);
         let response;
@@ -1470,17 +1485,25 @@ async function summarizeLinkedArticle({ thread, config, callChat, prices, capUsd
             throw error;
         }
         costUsd += billedCost(response.usage);
+        seconds = seconds === null || !Number.isFinite(response.usage.seconds) ? null : seconds + response.usage.seconds;
+        cached = cached && response.usage.cached === true;
         return parseModelResponse(fitted, response.json);
     };
+    const result = summary => ({ summary, costUsd, seconds, cached });
     try {
-        return { summary: await summarize(call), costUsd };
-    } catch (original) {
-        if (!isResponseFailure(original) || original.response === undefined) throw original;
         try {
-            return { summary: await summarize(buildFormatRepairCall(call, original)), costUsd };
-        } catch (error) {
-            throw new Error(`format repair failed or blocked: ${error.message}. Original validation: ${original.message}`);
+            return result(await summarize(call));
+        } catch (original) {
+            if (!isResponseFailure(original) || original.response === undefined) throw original;
+            try {
+                return result(await summarize(buildFormatRepairCall(call, original)));
+            } catch (error) {
+                throw new Error(`format repair failed or blocked: ${error.message}. Original validation: ${original.message}`);
+            }
         }
+    } catch (error) {
+        error.articleSummaryCostUsd = costUsd;
+        throw error;
     }
 }
 
@@ -4450,16 +4473,23 @@ async function markCachedRows(rows) {
         if (thread === null) {
             continue;
         }
+        // The article summary is not part of a run, so the run's probe does not see it; it is checked apart.
+        const summaryCached = await articleSummaryCached(thread);
+        if (!isCurrent()) {
+            return;
+        }
+        const summaryPart = summaryCached ? ' · article summary cached' : '';
+        if (summaryCached) item.classList.add('preprocessed');
         const snapshot = snapshotStore.get(String(story.id));
         const saved = resultStore.get(runResultCacheKey(runSelectionOf(story.id, snapshot.fetchedAt)));
         if (saved !== null && saved.version === RESULT_CACHE_VERSION) {
             item.classList.add('preprocessed');
-            setStoryStatus(status, 'ready', 'opens from a saved result');
+            setStoryStatus(status, 'ready', `opens from a saved result${summaryPart}`);
             continue;
         }
         const selection = threadShare(thread, sharePercent());
         if (selection.comments.length === 0) {
-            setStoryStatus(status, 'snapshot', 'thread snapshot only · 0 comments selected');
+            setStoryStatus(status, summaryCached ? 'partial' : 'snapshot', summaryCached ? 'article summary cached · 0 comments selected' : 'thread snapshot only · 0 comments selected');
             continue;
         }
         await defaultSleep(0);
@@ -4472,7 +4502,7 @@ async function markCachedRows(rows) {
         }
         if (probe.complete) {
             item.classList.add('preprocessed');
-            setStoryStatus(status, 'ready', 'opens from cached calls');
+            setStoryStatus(status, 'ready', `opens from cached calls${summaryPart}`);
             continue;
         }
         const hits = probe.stages.reduce((sum, stage) => sum + stage.hits, 0);
@@ -4480,7 +4510,8 @@ async function markCachedRows(rows) {
         if (hits > 0) {
             item.classList.add('preprocessed');
         }
-        setStoryStatus(status, hits > 0 ? 'partial' : 'snapshot', hits > 0 ? `${hits} of ${total} calls cached` : 'thread snapshot only');
+        const runText = hits > 0 ? `${hits} of ${total} calls cached${summaryPart}` : summaryCached ? 'article summary cached' : 'thread snapshot only';
+        setStoryStatus(status, hits > 0 || summaryCached ? 'partial' : 'snapshot', runText);
     }
 }
 
@@ -5079,9 +5110,41 @@ class ApiKeyMissingError extends Error {
     }
 }
 
-function showArticleSummaryText(text) {
+// meta is the text after the heading: the summary's time and cost, or what a failure spent; empty while it runs.
+function showArticleSummaryText(text, meta) {
     elements.articleSummary.querySelector('p').textContent = text;
+    elements.articleSummary.querySelector('.article-summary-meta').textContent = meta === '' ? '' : ` · ${meta}`;
     elements.articleSummary.hidden = false;
+}
+
+// "4 seconds, $0.0450", or "cached, originally 4 seconds, $0.0450"; a cache entry saved without a duration has no time.
+function articleSummaryMeta({ costUsd, seconds, cached }) {
+    const figures = [...(seconds === null ? [] : [formatElapsed(seconds)]), `$${costUsd.toFixed(COST_DIGITS)}`].join(', ');
+    return `${cached ? 'cached, originally ' : ''}${figures}`;
+}
+
+// The page's OpenRouter callChat for the summary, with each response's duration in usage.seconds, which the
+// cache keeps, so a cached summary still reports how long it took.
+function timedCallChat(callChat) {
+    return async call => {
+        const startedAt = Date.now();
+        const response = await callChat(call);
+        return { ...response, usage: { ...response.usage, seconds: (Date.now() - startedAt) / 1000 } };
+    };
+}
+
+// Whether the summary of thread is cached for the selected models and cap, for the story list's status. A cap
+// that refuses the call has no cached summary.
+async function articleSummaryCached(thread) {
+    if (!articleSummaryApplies(thread, DEFAULT_CONFIG)) return false;
+    let call;
+    try {
+        call = fittedArticleSummaryCall({ thread, config: selectedRunConfig(), prices: await articleSummaryPriceTable(), capUsd: articleSummaryCapInBox() });
+    } catch (error) {
+        if (error instanceof ArticleSummaryCapError) return false;
+        throw error;
+    }
+    return usableCachedResponse(call, await cacheStore.get(requestCacheKey(call)));
 }
 
 function hideArticleSummary() {
@@ -5104,28 +5167,33 @@ async function startArticleSummary(thread, apiKey) {
     hideArticleSummary();
     if (!articleSummaryApplies(thread, DEFAULT_CONFIG)) return;
     const isCurrent = articleSummaryLatest.start();
-    showArticleSummaryText('Fetching and summarizing the linked article.');
-    const callOpenRouterChat = apiKey === null ? () => { throw new ApiKeyMissingError(); } : makeOpenRouterCallChat({ apiKey });
+    showArticleSummaryText('Fetching and summarizing the linked article.', '');
+    const callOpenRouterChat = apiKey === null ? () => { throw new ApiKeyMissingError(); } : timedCallChat(makeOpenRouterCallChat({ apiKey }));
     const capUsd = articleSummaryCapInBox();
     let text;
+    let meta;
     try {
-        const { summary, costUsd } = await summarizeLinkedArticle({ thread, config: selectedRunConfig(), callChat: makeCachedCallChat(callOpenRouterChat, cacheStore),
+        const outcome = await summarizeLinkedArticle({ thread, config: selectedRunConfig(), callChat: makeCachedCallChat(callOpenRouterChat, cacheStore),
             prices: await articleSummaryPriceTable(), capUsd });
+        const { summary, costUsd } = outcome;
         const overCap = costUsd > capUsd ? ` (This summary cost $${costUsd.toFixed(COST_DIGITS)}, more than the Article summary max of $${capUsd.toFixed(COST_DIGITS)}.)` : '';
         text = `${summary.fetched ? summary.summary : `Not fetched: ${summary.summary}`}${overCap}`;
+        meta = articleSummaryMeta(outcome);
     } catch (error) {
         if (!(error instanceof ApiKeyMissingError)) console.error(error);
         if (!isCurrent()) return;
         if (error instanceof ApiKeyMissingError) {
             articleSummaryAwaitingKey = thread;
-            showArticleSummaryText('Waiting for an OpenRouter key: the summary starts when a run starts with one.');
+            showArticleSummaryText('Waiting for an OpenRouter key: the summary starts when a run starts with one.', '');
             return;
         }
         if (error instanceof ArticleSummaryCapError) articleSummaryRefusedByCap = thread;
         text = `Unavailable: ${error.message}`;
+        const spentUsd = error.articleSummaryCostUsd ?? 0;
+        meta = spentUsd > 0 ? `$${spentUsd.toFixed(COST_DIGITS)} spent` : '';
     }
     refreshStorageInfo();
-    if (isCurrent()) showArticleSummaryText(text);
+    if (isCurrent()) showArticleSummaryText(text, meta);
 }
 
 // Keeps the box's cap in localStorage; a summary the old cap refused starts again under the new one.
