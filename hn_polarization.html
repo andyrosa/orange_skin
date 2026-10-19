@@ -155,6 +155,11 @@ button { margin-right: 0.5rem; }
 <body>
 <h1>Orange Split</h1>
 <div class="row thread-controls">
+<span class="story-scope" role="group" aria-label="Story source">
+<button id="front-page-scope" type="button" aria-pressed="true">Front page</button>
+<button id="search-all-scope" type="button" aria-pressed="false">Search all</button>
+<button id="article-scope" type="button" aria-pressed="false">Paste article</button>
+</span>
 <span id="hn-controls">
 <label class="visually-hidden" for="thread-id">Thread</label>
 <div id="thread-picker">
@@ -171,11 +176,6 @@ button { margin-right: 0.5rem; }
 </span>
 </span>
 <span id="min-comments-help" class="visually-hidden">Up doubles and Down halves, rounding down to a whole number. Up from empty or zero starts at 1. You can also type any threshold.</span>
-</span>
-<span class="story-scope" role="group" aria-label="Story source">
-<button id="front-page-scope" type="button" aria-pressed="true">Front page</button>
-<button id="search-all-scope" type="button" aria-pressed="false">Search all</button>
-<button id="article-scope" type="button" aria-pressed="false">Paste article</button>
 </span>
 <a id="thread-title" target="_blank" rel="noopener noreferrer"></a>
 </div>
