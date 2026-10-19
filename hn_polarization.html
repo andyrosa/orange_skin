@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-f4hUBOXiSxQ2B81rXdngSrLzedCPuRTvNgACSADDs0g=' 'sha256-43Otz2kaQ7AJKpU5E+wXvyrTGymxFpy3RMjok9Y3EAA='; style-src 'sha256-tsb7Ao2DTOkPXJlLByeLLz2kV0BcGA13hCfu0X+h22o='; connect-src https://openrouter.ai https://hn.algolia.com https://hacker-news.firebaseio.com; img-src data:; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-f4hUBOXiSxQ2B81rXdngSrLzedCPuRTvNgACSADDs0g=' 'sha256-eyKE9RcjQfcFwdBjmLLvf+Duf/PxfUlKt4fwyEzdDro='; style-src 'sha256-h33gV0q7D3HRLHMqaPDI8Cn+YYeJPgTRkJENotFcwNE='; connect-src https://openrouter.ai https://hn.algolia.com https://hacker-news.firebaseio.com; img-src data:; base-uri 'none'; form-action 'none'">
 <title>Orange Split - For and Against on Hacker News</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 32 32%27%3E%3Crect width=%2732%27 height=%2732%27 fill=%27%23ff6600%27/%3E%3Ctext x=%2716%27 y=%2721%27 font-family=%27sans-serif%27 font-weight=%27bold%27 font-size=%2714%27 text-anchor=%27middle%27 fill=%27white%27%3EOS%3C/text%3E%3C/svg%3E">
 <style>
@@ -40,10 +40,13 @@ input[type="number"] { width: 5em; }
 #story-list li.header { color: #666; font-size: 0.9em; cursor: default; background: #eee; }
 #story-list li.active { background: #cde; }
 #story-list li.preprocessed .story-title { font-weight: bold; }
-.story-option { display: flex; align-items: center; gap: 0.35rem; padding: 0.35rem 0.5rem; white-space: nowrap; }
-.story-option.header { display: block; }
+.story-option { display: flex; align-items: stretch; padding: 0 0 0 0.5rem; white-space: nowrap; }
+.story-option.header { display: block; padding: 0.35rem 0.5rem; }
+.story-option.header .story-hn-head { float: right; }
+.story-text { flex: 1 1 auto; display: flex; align-items: center; gap: 0.35rem; min-width: 0; padding: 0.35rem 0; }
 .story-title { flex: 0 1 auto; min-width: 4rem; overflow: hidden; text-overflow: ellipsis; }
-.story-title a { color: #0645ad; cursor: alias; }
+.story-hn { flex: 0 0 auto; display: flex; align-items: center; margin-left: 0.5rem; padding: 0 0.8rem; border-left: 1px solid #ddd; background: #ff6600; color: #fff; font-weight: bold; font-size: 0.85em; text-decoration: none; cursor: alias; }
+.story-hn:hover { background: #e65c00; }
 .story-detail { flex: 0 0 auto; color: #666; font-size: 12px; }
 .story-detail .new { color: #8a5400; font-weight: bold; }
 .story-status { color: #666; }
@@ -51,7 +54,8 @@ input[type="number"] { width: 5em; }
 .story-status.partial { color: #24588f; }
 @media (max-width: 48rem) {
     #story-list { left: calc(2px - 1rem); width: calc(100vw - 4px); box-sizing: border-box; }
-    .story-option { flex-direction: column; align-items: stretch; gap: 0.15rem; white-space: normal; overflow-wrap: anywhere; }
+    .story-option { white-space: normal; overflow-wrap: anywhere; }
+    .story-text { flex-direction: column; align-items: stretch; gap: 0.15rem; }
     .story-title { min-width: 0; }
     .story-detail { line-height: 1.4; }
 }
@@ -4535,18 +4539,18 @@ function showList(stories, headerFor) {
     activeIndex = -1;
     const header = headerFor(listStories);
     const headerItem = makeElement('li', { className: 'header story-option' });
-    headerItem.append(makeElement('span', { text: header }));
+    headerItem.append(makeElement('span', { text: header }), makeElement('span', { className: 'story-hn-head', text: 'discussion' }));
     const rows = listStories.map((story, index) => {
         const thread = storedThread(String(story.id));
         const item = makeElement('li', { className: 'story-option' });
         item.setAttribute('role', 'option');
         item.id = `story-option-${index}`;
-        const title = makeElement('span', { className: 'story-title' });
-        const link = makeElement('a', { text: story.title });
+        const title = makeElement('span', { className: 'story-title', text: story.title });
+        const link = makeElement('a', { className: 'story-hn', text: 'HN ↗' });
         link.href = CONSTANTS.HN_ITEM_PAGE_URL + story.id;
         link.target = '_blank';
         link.rel = 'noopener noreferrer';
-        link.title = 'Open the Hacker News post in a new tab';
+        link.title = 'Open the Hacker News discussion in a new tab';
         link.addEventListener('mousedown', event => {
             event.preventDefault();
             event.stopPropagation();
@@ -4556,7 +4560,6 @@ function showList(stories, headerFor) {
             event.stopPropagation();
             window.open(link.href, '_blank', 'noopener');
         });
-        title.append(link);
         const detail = makeElement('span', { className: 'story-detail' });
         detail.title = 'Comment counts are reported by Algolia.';
         detail.append(document.createTextNode(`${counted(story.numComments, 'comment')}, ${storyDate(story)}, id ${story.id}`));
@@ -4574,7 +4577,9 @@ function showList(stories, headerFor) {
             text: thread === null ? 'not stored' : 'checking preprocessing…',
         });
         detail.append(status);
-        item.append(title, detail);
+        const text = makeElement('span', { className: 'story-text' });
+        text.append(title, detail);
+        item.append(text, link);
         item.addEventListener('mousedown', () => pickStory(story));
         return { story, thread, item, status };
     });
