@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-f4hUBOXiSxQ2B81rXdngSrLzedCPuRTvNgACSADDs0g=' 'sha256-eyKE9RcjQfcFwdBjmLLvf+Duf/PxfUlKt4fwyEzdDro='; style-src 'sha256-i1TWqBTTb7KNmyHflgBDJwWxq0RovAoJfun566x2lro='; connect-src https://openrouter.ai https://hn.algolia.com https://hacker-news.firebaseio.com; img-src data:; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-f4hUBOXiSxQ2B81rXdngSrLzedCPuRTvNgACSADDs0g=' 'sha256-eyKE9RcjQfcFwdBjmLLvf+Duf/PxfUlKt4fwyEzdDro='; style-src 'sha256-e0vj0RabQFC1dpcdQDuc8/JNBOURiSquVTme0pj47ak='; connect-src https://openrouter.ai https://hn.algolia.com https://hacker-news.firebaseio.com; img-src data:; base-uri 'none'; form-action 'none'">
 <title>Orange Split - For and Against on Hacker News</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 32 32%27%3E%3Crect width=%2732%27 height=%2732%27 fill=%27%23ff6600%27/%3E%3Ctext x=%2716%27 y=%2721%27 font-family=%27sans-serif%27 font-weight=%27bold%27 font-size=%2714%27 text-anchor=%27middle%27 fill=%27white%27%3EOS%3C/text%3E%3C/svg%3E">
 <style>
@@ -18,7 +18,10 @@ body { font-family: system-ui, sans-serif; margin: 0.5rem 1rem; }
 h1 { font-size: 1.4rem; margin: 0 0 0.5rem; }
 .visually-hidden { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
 label { display: inline-block; margin-right: 1rem; }
-input[type="password"] { width: 22rem; }
+/* 100cqi is the width of #key-entry; 1rem is the key label's right margin. A percentage width would resolve
+   against the shrink-to-fit label and not shrink the box in a narrow window. */
+#key-entry { container-type: inline-size; }
+input[type="password"] { width: min(22rem, 100cqi - 1rem); box-sizing: border-box; }
 #thread-id { width: 10rem; }
 input[type="number"] { width: 5em; }
 #min-comments { width: 3.5em; appearance: textfield; -moz-appearance: textfield; }
