@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-n2M9g2GMLJC3p8IeRTgyWAeW4vpkNV6lYHBRQS2qvVs=' 'sha256-x5gS0HIivCnPWXWBVJylfkGj/IAUAzWMRDO/XacXIpo='; style-src 'sha256-zHBg8WOBw9dZBo5yIqzMP7zqjZFYQ2Vzo0CFbNIKjPA='; connect-src https://openrouter.ai https://hn.algolia.com https://hacker-news.firebaseio.com; img-src data:; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-n2M9g2GMLJC3p8IeRTgyWAeW4vpkNV6lYHBRQS2qvVs=' 'sha256-BYUwY/GQV8w6qp6Ttx9UT4jbm02IG0tJzAXiBUyxr7E='; style-src 'sha256-zHBg8WOBw9dZBo5yIqzMP7zqjZFYQ2Vzo0CFbNIKjPA='; connect-src https://openrouter.ai https://hn.algolia.com https://hacker-news.firebaseio.com; img-src data:; base-uri 'none'; form-action 'none'">
 <title>Orange Split - For and Against on Hacker News</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 32 32%27%3E%3Crect width=%2732%27 height=%2732%27 fill=%27%23ff6600%27/%3E%3Ctext x=%2716%27 y=%2721%27 font-family=%27sans-serif%27 font-weight=%27bold%27 font-size=%2714%27 text-anchor=%27middle%27 fill=%27white%27%3EOS%3C/text%3E%3C/svg%3E">
 <style>
@@ -261,7 +261,7 @@ button { margin-right: 0.5rem; }
 <label>OpenRouter key <input id="api-key" type="password" autocomplete="off"></label> <label><input id="remember-key" type="checkbox"> Remember pasted key</label> <button id="connect-openrouter" type="button" hidden>Sign in with OpenRouter instead</button>
 </p>
 <p>
-<span id="storage-info">Cached locally: <span id="cached-call-count"></span>, <button id="cached-results-toggle" type="button" aria-expanded="false" aria-controls="cached-results-list" title="Finished runs stored for immediate page restoration; selecting one restores its models, share and budget"></button><span id="cached-date-range" title="Earliest and latest thread snapshot fetch times, in local time"></span></span>
+<span id="storage-info">Cached locally: <span id="cached-call-count"></span>, <button id="cached-results-toggle" type="button" aria-expanded="false" aria-controls="cached-results-list" title="Finished runs stored for immediate page restoration; selecting one restores its models, share and budget"></button>, <span id="cached-snapshot-count"></span><span id="cached-date-range" title="Earliest and latest thread snapshot fetch times, in local time"></span>, <span id="quelched-count"></span></span>
 <button id="export-cache" type="button">Export</button>
 <button id="import-cache" type="button">Import</button>
 <input id="import-cache-file" type="file" accept=".json,application/json" hidden>
@@ -3699,6 +3699,8 @@ const elements = {
     cachedResultsToggle: document.getElementById('cached-results-toggle'),
     cachedResultsList: document.getElementById('cached-results-list'),
     cachedDateRange: document.getElementById('cached-date-range'),
+    cachedSnapshotCount: document.getElementById('cached-snapshot-count'),
+    quelchedCount: document.getElementById('quelched-count'),
     exportCache: document.getElementById('export-cache'),
     importCache: document.getElementById('import-cache'),
     importCacheFile: document.getElementById('import-cache-file'),
@@ -4179,8 +4181,9 @@ function cachedSnapshotDateRange(fetchTimes) {
     return ` ${format(earliest)} to ${format(latest)}`;
 }
 
-// The stored snapshots (threads and pasted articles) are not listed; the storage line shows only their
-// fetch-time range. They remain stored for reopening summaries and for loading threads without refetching.
+// The stored snapshots (threads and pasted articles) are not listed one by one; the storage line shows their
+// count and fetch-time range. They remain stored for reopening summaries and for loading threads without
+// refetching.
 function renderCachedDateRange() {
     const fetchTimes = snapshotStore.keys().map(key => snapshotStore.get(key.slice(CONSTANTS.THREAD_KEY_PREFIX.length)).fetchedAt);
     elements.cachedDateRange.textContent = cachedSnapshotDateRange(fetchTimes);
@@ -4192,6 +4195,18 @@ function refreshStorageInfo() {
     const storedResults = resultStore.count();
     elements.cachedCallCount.textContent = counted(cachedCalls, 'AI call');
     elements.cachedResultsToggle.textContent = counted(storedResults, 'summary', 'summaries');
+    elements.cachedSnapshotCount.textContent = counted(storedThreads, 'thread or article snapshot', 'thread and article snapshots');
+    // The line names everything Delete removes, so an unreadable quelched-story value is named rather than counted.
+    let quelchedText;
+    let quelchedError = '';
+    try {
+        quelchedText = counted(Object.keys(quelchedStories()).length, 'quelched story', 'quelched stories');
+    } catch (error) {
+        quelchedText = 'quelched stories unreadable';
+        quelchedError = error.message;
+    }
+    elements.quelchedCount.textContent = quelchedText;
+    elements.quelchedCount.title = quelchedError;
     renderCachedDateRange();
     renderCachedResults();
     elements.exportCache.disabled = pageBusy() || cachedCalls + storedThreads + storedResults === 0;
@@ -4478,7 +4493,9 @@ function frontPageLabel() {
 }
 
 // Stories the Quelch button hid from the Front page lists: a JSON object in localStorage that maps each story
-// id to the time it was quelched, in milliseconds since the epoch. Delete on the storage line removes it.
+// id to the time it was quelched, in milliseconds since the epoch. One press stamps all its stories with one
+// time, later than every earlier press, so the time names the press for Unquelch. Delete on the storage line
+// removes the object.
 function quelchedStories() {
     const raw = localStorage.getItem(CONSTANTS.STORAGE_KEY_QUELCHED);
     if (raw === null) return {};
@@ -4486,24 +4503,50 @@ function quelchedStories() {
     if (quelched === null || typeof quelched !== 'object' || Array.isArray(quelched)) {
         throw new Error(`localStorage ${CONSTANTS.STORAGE_KEY_QUELCHED} does not hold a JSON object`);
     }
+    if (!Object.values(quelched).every(Number.isSafeInteger)) {
+        throw new Error(`localStorage ${CONSTANTS.STORAGE_KEY_QUELCHED} holds a quelch time that is not a whole number`);
+    }
     return quelched;
+}
+
+function storeQuelched(quelched) {
+    if (Object.keys(quelched).length === 0) {
+        localStorage.removeItem(CONSTANTS.STORAGE_KEY_QUELCHED);
+    } else {
+        localStorage.setItem(CONSTANTS.STORAGE_KEY_QUELCHED, JSON.stringify(quelched));
+    }
 }
 
 function quelchStories(stories) {
     const quelched = quelchedStories();
-    const quelchedAt = Date.now();
+    const latest = Object.values(quelched).reduce((maximum, time) => Math.max(maximum, time), 0);
+    const quelchedAt = Math.max(Date.now(), latest + 1);
     for (const story of stories) quelched[story.id] = quelchedAt;
-    localStorage.setItem(CONSTANTS.STORAGE_KEY_QUELCHED, JSON.stringify(quelched));
+    storeQuelched(quelched);
 }
 
-// The current front page's stories that are not quelched, and how many of its stories are. A quelched
+// Shows again every story of the press that stamped them with quelchedAt.
+function unquelchStories(quelchedAt) {
+    const quelched = quelchedStories();
+    for (const [id, time] of Object.entries(quelched)) {
+        if (time === quelchedAt) delete quelched[id];
+    }
+    storeQuelched(quelched);
+}
+
+// The current front page's stories that are not quelched, how many of its stories are, and the latest press
+// that hid any of them (null when none is hidden): its time and its story count on every page. A quelched
 // story leaves its page shorter; no story moves in from the next page.
 function frontPageStories() {
     const start = frontPageIndex * FRONT_PAGE_SIZE;
     const quelched = quelchedStories();
     const page = homePageStories.slice(start, start + FRONT_PAGE_SIZE);
     const shown = page.filter(story => !Object.hasOwn(quelched, story.id));
-    return { shown, quelchedCount: page.length - shown.length };
+    const hiddenTimes = page.filter(story => Object.hasOwn(quelched, story.id)).map(story => quelched[story.id]);
+    if (hiddenTimes.length === 0) return { shown, quelchedCount: 0, latestQuelch: null };
+    const quelchedAt = hiddenTimes.reduce((maximum, time) => Math.max(maximum, time));
+    const storyCount = Object.values(quelched).filter(time => time === quelchedAt).length;
+    return { shown, quelchedCount: hiddenTimes.length, latestQuelch: { quelchedAt, storyCount } };
 }
 
 function setStoryStatus(element, kind, text) {
@@ -4567,24 +4610,28 @@ function listIsOpen() {
 }
 
 // Fills and opens the list: the header row, then one row per story above the Min comments box, newest
-// first. headerFor names the header from the rows that remain. A quelchable list's header ends in a
-// Quelch button while the list has rows; the button quelches exactly those rows.
-function showList(stories, headerFor, quelchable) {
+// first. headerFor names the header from the rows that remain. frontPage is null for other lists; for a
+// front page (frontPageStories) the header adds a Quelch button after its name while the list has rows,
+// which quelches exactly those rows, and, while the page has quelched stories, their count and an
+// Unquelch button that shows again the stories of the latest press that hid any of them.
+function showList(stories, headerFor, frontPage) {
     listStories = sortStoriesNewestFirst(storiesAboveMinComments(stories));
     activeIndex = -1;
     const header = headerFor(listStories);
     const headerItem = makeElement('li', { className: 'header story-option' });
     const headerText = makeElement('span', { text: header });
-    if (quelchable && listStories.length > 0) {
-        const quelch = makeElement('button', { text: 'Quelch' });
-        quelch.type = 'button';
-        quelch.title = `Hide these ${counted(listStories.length, 'story', 'stories')} from the Front page lists in this browser`;
-        quelch.addEventListener('click', quelchListedStories);
-        // Tab from the Thread box reaches the button with the list open; leaving it for anything but the box closes the list.
-        quelch.addEventListener('blur', event => {
-            if (event.relatedTarget !== elements.threadId) closeList();
-        });
-        headerText.append(quelch);
+    const quelchShown = frontPage !== null && listStories.length > 0;
+    if (quelchShown) {
+        const listed = listStories;
+        headerText.append(headerButton('Quelch', `Hide these ${counted(listed.length, 'story', 'stories')} from the Front page lists in this browser`,
+            () => changeQuelched('Quelch', () => quelchStories(listed))));
+    }
+    if (frontPage !== null && frontPage.latestQuelch !== null) {
+        const { quelchedAt, storyCount } = frontPage.latestQuelch;
+        // A comma after the Quelch button would sit apart from the name it follows.
+        const separator = quelchShown ? '' : ', ';
+        headerText.append(`${separator}${frontPage.quelchedCount} quelched`, headerButton('Unquelch', `Show again the ${counted(storyCount, 'story', 'stories')} of the latest quelch that hid stories on this page`,
+            () => changeQuelched('Unquelch', () => unquelchStories(quelchedAt))));
     }
     headerItem.append(headerText, makeElement('span', { className: 'story-hn-head', text: 'discussion' }));
     const rows = listStories.map((story, index) => {
@@ -4664,15 +4711,24 @@ function pickStory(story) {
     loadThreadFromPage(String(story.id));
 }
 
-function quelchListedStories() {
+function headerButton(text, title, onClick) {
+    const button = makeElement('button', { text });
+    button.type = 'button';
+    button.title = title;
+    button.addEventListener('click', onClick);
+    return button;
+}
+
+// Runs a Quelch or Unquelch change and redraws the list.
+function changeQuelched(action, change) {
     try {
-        quelchStories(listStories);
+        change();
     } catch (error) {
-        setStatus(`Quelch failed: ${error.message}`, true);
+        setStatus(`${action} failed: ${error.message}`, true);
         return;
     }
     refreshStorageInfo();
-    // A keyboard Quelch leaves focus on the button, which the redraw removes; the Thread box takes it back.
+    // A keyboard press leaves focus on a header button, which the redraw removes; the Thread box takes it back.
     elements.threadId.focus();
     refreshList();
 }
@@ -4689,29 +4745,28 @@ function refreshList() {
     if (storyScope === 'front') {
         searchLatest.cancel();
         if (homePageStories === null) {
-            showList([], () => homePageHeader, false);
+            showList([], () => homePageHeader, null);
             return;
         }
         let page;
         try {
             page = frontPageStories();
         } catch (error) {
-            showList([], () => HEADER_QUELCHED_UNREADABLE, false);
+            showList([], () => HEADER_QUELCHED_UNREADABLE, null);
             setStatus(`Quelched stories unreadable: ${error.message}. Delete on the storage line removes them.`, true);
             return;
         }
         const needle = text.toLowerCase();
-        const quelchedPart = page.quelchedCount === 0 ? '' : `, ${page.quelchedCount} quelched`;
-        showList(page.shown.filter(story => story.title.toLowerCase().includes(needle)), () => frontPageLabel() + quelchedPart, true);
+        showList(page.shown.filter(story => story.title.toLowerCase().includes(needle)), frontPageLabel, page);
         return;
     }
     if (text.length < SEARCH_MIN_CHARS) {
         searchLatest.cancel();
-        showList([], () => HEADER_SEARCH_PROMPT, false);
+        showList([], () => HEADER_SEARCH_PROMPT, null);
         return;
     }
     if (lastSearch !== null && lastSearch.text === text) {
-        showList(lastSearch.stories, searchHeader, false);
+        showList(lastSearch.stories, searchHeader, null);
     } else {
         scheduleStorySearch(text);
     }
@@ -4754,7 +4809,7 @@ async function populateFrontPage() {
 // events; the search waits for a pause. A result for a search that is no longer the latest, or that
 // arrives after the list was closed, is dropped.
 async function scheduleStorySearch(text) {
-    showList(lastSearch === null ? [] : lastSearch.stories, () => HEADER_SEARCHING, false);
+    showList(lastSearch === null ? [] : lastSearch.stories, () => HEADER_SEARCHING, null);
     const isCurrent = searchLatest.start();
     await defaultSleep(SEARCH_DEBOUNCE_MS);
     if (!isCurrent()) {
@@ -4764,11 +4819,11 @@ async function scheduleStorySearch(text) {
         const stories = await fetchStories(storySearchUrl(text), `the search "${text}"`);
         lastSearch = { text, stories };
         if (isCurrent() && listIsOpen()) {
-            showList(stories, searchHeader, false);
+            showList(stories, searchHeader, null);
         }
     } catch (error) {
         if (isCurrent() && listIsOpen()) {
-            showList([], () => HEADER_SEARCH_FAILED, false);
+            showList([], () => HEADER_SEARCH_FAILED, null);
         }
         setStatus(`Story search failed: ${error.message}`, true);
     }
@@ -5805,6 +5860,11 @@ elements.threadId.addEventListener('keydown', event => {
 });
 elements.threadId.addEventListener('blur', event => {
     if (!elements.storyList.contains(event.relatedTarget)) closeList();
+});
+// Tab from the Thread box reaches the header buttons with the list open; leaving them for anything but the
+// box or another header button closes the list.
+elements.storyList.addEventListener('focusout', event => {
+    if (event.relatedTarget !== elements.threadId && !elements.storyList.contains(event.relatedTarget)) closeList();
 });
 elements.storyList.addEventListener('mousedown', event => event.preventDefault());
 // A typed id followed by leaving the box loads the thread unless it is already loaded.
