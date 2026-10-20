@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-n2M9g2GMLJC3p8IeRTgyWAeW4vpkNV6lYHBRQS2qvVs=' 'sha256-7Wyr2ff/59500k+AgSAT7J64bBqBq6V2/zq8RTBBHrg='; style-src 'sha256-zHBg8WOBw9dZBo5yIqzMP7zqjZFYQ2Vzo0CFbNIKjPA='; connect-src https://openrouter.ai https://hn.algolia.com https://hacker-news.firebaseio.com; img-src data:; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-5BwlREW9jcP56tuLmI6TLYPiZKBg211KILy06eo5gyU=' 'sha256-jNY2oM1jBUp6RdMBdvL9vO4VoWpKplt3k2l6uAhJNek='; style-src 'sha256-zHBg8WOBw9dZBo5yIqzMP7zqjZFYQ2Vzo0CFbNIKjPA='; connect-src https://openrouter.ai https://hn.algolia.com https://hacker-news.firebaseio.com; img-src data:; base-uri 'none'; form-action 'none'">
 <title>Orange Split - For and Against on Hacker News</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 32 32%27%3E%3Crect width=%2732%27 height=%2732%27 fill=%27%23ff6600%27/%3E%3Ctext x=%2716%27 y=%2721%27 font-family=%27sans-serif%27 font-weight=%27bold%27 font-size=%2714%27 text-anchor=%27middle%27 fill=%27white%27%3EOS%3C/text%3E%3C/svg%3E">
 <style>
@@ -2826,7 +2826,18 @@ function parseCacheExport(text) {
             throw new Error(`Cache import entry ${key} must contain an object.`);
         }
     }
-    return payload;
+    // The quelched stories map each story id to the time of the Quelch press that hid it. Exports made
+    // before quelched stories were exported have no quelched field.
+    const quelched = Object.hasOwn(payload, 'quelched') ? payload.quelched : {};
+    if (quelched === null || typeof quelched !== 'object' || Array.isArray(quelched)) {
+        throw new Error('Cache import quelched must contain an object.');
+    }
+    for (const [storyId, quelchedAt] of Object.entries(quelched)) {
+        if (!/^[1-9]\d*$/.test(storyId) || !Number.isSafeInteger(quelchedAt)) {
+            throw new Error(`Cache import quelched entry ${storyId} must map a story id to a whole-number time.`);
+        }
+    }
+    return { ...payload, quelched };
 }
 
 // JSON object field order is immaterial; array order and every data field matter.
@@ -4060,13 +4071,18 @@ function setRunning() {
     for (const input of [elements.articleScope, elements.articleText, elements.articleTitle, elements.frontPageScope, elements.searchAllScope, elements.threadId, elements.extractionModelButton, elements.consolidationModelButton, elements.scoringModelButton, elements.summaryModelButton, elements.maxCost, elements.share]) input.disabled = isBusy;
     elements.loadThread.disabled = isBusy;
     elements.refreshThread.disabled = isBusy;
-    elements.exportCache.disabled = isBusy || cacheStore.count() + snapshotStore.count() + resultStore.count() === 0;
+    elements.exportCache.disabled = isBusy || nothingStored();
     elements.importCache.disabled = isBusy;
     elements.deleteCached.disabled = isBusy;
     for (const button of elements.cachedResultsList.querySelectorAll('button')) {
         button.disabled = isBusy;
     }
     refreshRunButton();
+}
+
+// Export and Delete have nothing to act on: no cache entry and no quelched-story list is stored.
+function nothingStored() {
+    return cacheStore.count() + snapshotStore.count() + resultStore.count() === 0 && localStorage.getItem(CONSTANTS.STORAGE_KEY_QUELCHED) === null;
 }
 
 // A run or a cache import is in progress, so the controls that start either one wait.
@@ -4209,9 +4225,8 @@ function refreshStorageInfo() {
     elements.quelchedCount.title = quelchedError;
     renderCachedDateRange();
     renderCachedResults();
-    elements.exportCache.disabled = pageBusy() || cachedCalls + storedThreads + storedResults === 0;
-    const quelchedStored = localStorage.getItem(CONSTANTS.STORAGE_KEY_QUELCHED) !== null;
-    elements.deleteCached.hidden = cachedCalls === 0 && storedThreads === 0 && storedResults === 0 && !quelchedStored;
+    elements.exportCache.disabled = pageBusy() || nothingStored();
+    elements.deleteCached.hidden = nothingStored();
 }
 
 function cacheExportPayload() {
@@ -4225,6 +4240,7 @@ function cacheExportPayload() {
         exportedAt: new Date().toISOString(),
         origin: location.origin,
         entries,
+        quelched: quelchedStories(),
     };
 }
 
@@ -4258,6 +4274,20 @@ async function importCacheEntries(entries) {
     return counts;
 }
 
+// Adds the imported stories that this browser has not quelched. A story quelched here keeps this browser's
+// time, so the Unquelch press that shows it again is unchanged. Returns how many stories were added.
+function importQuelchedStories(imported) {
+    const quelched = quelchedStories();
+    let added = 0;
+    for (const [storyId, quelchedAt] of Object.entries(imported)) {
+        if (Object.hasOwn(quelched, storyId)) continue;
+        quelched[storyId] = quelchedAt;
+        added += 1;
+    }
+    if (added > 0) storeQuelched(quelched);
+    return added;
+}
+
 async function importCacheFile(file) {
     setImporting(true);
     setStatus(`Importing cache entries from ${file.name}…`);
@@ -4265,10 +4295,20 @@ async function importCacheFile(file) {
     try {
         const payload = parseCacheExport(await file.text());
         const counts = await importCacheEntries(payload.entries);
+        // The cache entries are already stored, so a failure here is reported beside their counts.
+        let quelchedPart;
+        let quelchedFailed = false;
+        try {
+            const added = importQuelchedStories(payload.quelched);
+            quelchedPart = added === 0 ? '' : ` Added ${counted(added, 'quelched story', 'quelched stories')}.`;
+        } catch (error) {
+            quelchedPart = ` The quelched stories were not imported: ${error.message}`;
+            quelchedFailed = true;
+        }
         flattenedThreads.clear();
         probeMemo.clear();
         await afterStoreChange();
-        setStatus(formatCacheImport(counts, file.name));
+        setStatus(formatCacheImport(counts, file.name) + quelchedPart, quelchedFailed);
     } finally {
         setImporting(false);
     }
@@ -5616,7 +5656,13 @@ elements.cancel.addEventListener('click', () => {
         activeController.abort();
     }
 });
-elements.exportCache.addEventListener('click', downloadCacheExport);
+elements.exportCache.addEventListener('click', () => {
+    try {
+        downloadCacheExport();
+    } catch (error) {
+        setStatus(`Export failed: ${error.message}`, true);
+    }
+});
 elements.importCache.addEventListener('click', () => elements.importCacheFile.click());
 elements.importCacheFile.addEventListener('change', () => {
     const [file] = elements.importCacheFile.files;
@@ -5647,7 +5693,7 @@ elements.deleteCached.addEventListener('click', async () => {
     afterStoreChange();
     const quelchedPart = quelchedStored ? ' The quelched stories show again.' : '';
     const keyPart = currentApiKey() === null ? '' : ' The OpenRouter key is kept.';
-    setStatus(`Deleted from this browser: ${removedCalls} cached model calls, ${removedSnapshots} threads, and ${removedResults} completed results.${quelchedPart}${keyPart}`);
+    setStatus(`Deleted from this browser: ${removedCalls} cached model calls, ${counted(removedSnapshots, 'thread or article snapshot', 'thread and article snapshots')}, and ${removedResults} completed results.${quelchedPart}${keyPart}`);
 });
 elements.loadThread.addEventListener('click', loadThreadFromBox);
 elements.cachedResultsToggle.addEventListener('click', () => {
