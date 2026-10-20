@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-n2M9g2GMLJC3p8IeRTgyWAeW4vpkNV6lYHBRQS2qvVs=' 'sha256-BYUwY/GQV8w6qp6Ttx9UT4jbm02IG0tJzAXiBUyxr7E='; style-src 'sha256-zHBg8WOBw9dZBo5yIqzMP7zqjZFYQ2Vzo0CFbNIKjPA='; connect-src https://openrouter.ai https://hn.algolia.com https://hacker-news.firebaseio.com; img-src data:; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-n2M9g2GMLJC3p8IeRTgyWAeW4vpkNV6lYHBRQS2qvVs=' 'sha256-7Wyr2ff/59500k+AgSAT7J64bBqBq6V2/zq8RTBBHrg='; style-src 'sha256-zHBg8WOBw9dZBo5yIqzMP7zqjZFYQ2Vzo0CFbNIKjPA='; connect-src https://openrouter.ai https://hn.algolia.com https://hacker-news.firebaseio.com; img-src data:; base-uri 'none'; form-action 'none'">
 <title>Orange Split - For and Against on Hacker News</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 32 32%27%3E%3Crect width=%2732%27 height=%2732%27 fill=%27%23ff6600%27/%3E%3Ctext x=%2716%27 y=%2721%27 font-family=%27sans-serif%27 font-weight=%27bold%27 font-size=%2714%27 text-anchor=%27middle%27 fill=%27white%27%3EOS%3C/text%3E%3C/svg%3E">
 <style>
@@ -5646,7 +5646,8 @@ elements.deleteCached.addEventListener('click', async () => {
     probeMemo.clear();
     afterStoreChange();
     const quelchedPart = quelchedStored ? ' The quelched stories show again.' : '';
-    setStatus(`Deleted from this browser: ${removedCalls} cached model calls, ${removedSnapshots} threads, and ${removedResults} completed results.${quelchedPart} The OpenRouter key is kept.`);
+    const keyPart = currentApiKey() === null ? '' : ' The OpenRouter key is kept.';
+    setStatus(`Deleted from this browser: ${removedCalls} cached model calls, ${removedSnapshots} threads, and ${removedResults} completed results.${quelchedPart}${keyPart}`);
 });
 elements.loadThread.addEventListener('click', loadThreadFromBox);
 elements.cachedResultsToggle.addEventListener('click', () => {
