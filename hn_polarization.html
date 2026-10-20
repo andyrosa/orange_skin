@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-n2M9g2GMLJC3p8IeRTgyWAeW4vpkNV6lYHBRQS2qvVs=' 'sha256-7MTQj+bJR+tJpehXQ/dU3CgaEYL3TzDuN+IedogfeDo='; style-src 'sha256-zHBg8WOBw9dZBo5yIqzMP7zqjZFYQ2Vzo0CFbNIKjPA='; connect-src https://openrouter.ai https://hn.algolia.com https://hacker-news.firebaseio.com; img-src data:; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-n2M9g2GMLJC3p8IeRTgyWAeW4vpkNV6lYHBRQS2qvVs=' 'sha256-x5gS0HIivCnPWXWBVJylfkGj/IAUAzWMRDO/XacXIpo='; style-src 'sha256-zHBg8WOBw9dZBo5yIqzMP7zqjZFYQ2Vzo0CFbNIKjPA='; connect-src https://openrouter.ai https://hn.algolia.com https://hacker-news.firebaseio.com; img-src data:; base-uri 'none'; form-action 'none'">
 <title>Orange Split - For and Against on Hacker News</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 32 32%27%3E%3Crect width=%2732%27 height=%2732%27 fill=%27%23ff6600%27/%3E%3Ctext x=%2716%27 y=%2721%27 font-family=%27sans-serif%27 font-weight=%27bold%27 font-size=%2714%27 text-anchor=%27middle%27 fill=%27white%27%3EOS%3C/text%3E%3C/svg%3E">
 <style>
@@ -4580,6 +4580,10 @@ function showList(stories, headerFor, quelchable) {
         quelch.type = 'button';
         quelch.title = `Hide these ${counted(listStories.length, 'story', 'stories')} from the Front page lists in this browser`;
         quelch.addEventListener('click', quelchListedStories);
+        // Tab from the Thread box reaches the button with the list open; leaving it for anything but the box closes the list.
+        quelch.addEventListener('blur', event => {
+            if (event.relatedTarget !== elements.threadId) closeList();
+        });
         headerText.append(quelch);
     }
     headerItem.append(headerText, makeElement('span', { className: 'story-hn-head', text: 'discussion' }));
@@ -4594,6 +4598,8 @@ function showList(stories, headerFor, quelchable) {
         link.target = '_blank';
         link.rel = 'noopener noreferrer';
         link.title = 'Open the Hacker News discussion in a new tab';
+        // Tab leaves the list after the Quelch button instead of stepping through every row's link.
+        link.tabIndex = -1;
         link.addEventListener('mousedown', event => {
             event.preventDefault();
             event.stopPropagation();
@@ -4666,6 +4672,8 @@ function quelchListedStories() {
         return;
     }
     refreshStorageInfo();
+    // A keyboard Quelch leaves focus on the button, which the redraw removes; the Thread box takes it back.
+    elements.threadId.focus();
     refreshList();
 }
 
@@ -5795,7 +5803,9 @@ elements.threadId.addEventListener('keydown', event => {
         closeList();
     }
 });
-elements.threadId.addEventListener('blur', closeList);
+elements.threadId.addEventListener('blur', event => {
+    if (!elements.storyList.contains(event.relatedTarget)) closeList();
+});
 elements.storyList.addEventListener('mousedown', event => event.preventDefault());
 // A typed id followed by leaving the box loads the thread unless it is already loaded.
 elements.threadId.addEventListener('change', () => {
