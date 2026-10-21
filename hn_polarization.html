@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-3bWHtmq7/dNSQErPYGxtU8GWwnpQK7VZkNFe1EQ6m/g=' 'sha256-E57KkUU1SoWNZCJfxiEYOnJ8cvnuDut/x0WS7YUHd0k='; style-src 'sha256-ZMA2SlnhlJGzlVE+WVe+8leyvLWDXG8G3MrB1MT+T18='; connect-src https://openrouter.ai https://hn.algolia.com https://hacker-news.firebaseio.com; img-src data:; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-FEFVzQfRcnvrubrclUIVc9yPFWh5eLu7WlWyyFyXwmg=' 'sha256-E57KkUU1SoWNZCJfxiEYOnJ8cvnuDut/x0WS7YUHd0k='; style-src 'sha256-ZMA2SlnhlJGzlVE+WVe+8leyvLWDXG8G3MrB1MT+T18='; connect-src https://openrouter.ai https://hn.algolia.com https://hacker-news.firebaseio.com; img-src data:; base-uri 'none'; form-action 'none'">
 <title>Orange Split - For and Against on Hacker News</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 32 32%27%3E%3Crect width=%2732%27 height=%2732%27 fill=%27%23ff6600%27/%3E%3Ctext x=%2716%27 y=%2721%27 font-family=%27sans-serif%27 font-weight=%27bold%27 font-size=%2714%27 text-anchor=%27middle%27 fill=%27white%27%3EOS%3C/text%3E%3C/svg%3E">
 <style>
@@ -1426,6 +1426,14 @@ const ARTICLE_FETCH_MAX_TOKENS = 30000;
 // fetched text, and so the cost, unbounded. OpenRouter's own engine truncates but passed about 38,000 tokens of text
 // that the model could not read for https://linear.app/, whose summary then said almost nothing; Exa passed about
 // 1,800 readable tokens for that page.
+// A site's bot protection can refuse the fetch. On 2026-10-21 the summary of HN thread 50154244 reported that the
+// fetch returned no content for its link, https://www.reuters.com/technology/us-banning-chinese-ai-deepseek-government-agency-it-systems-2026-10-19/;
+// curl from Windows 10 got HTTP 401 with "x-datadome: protected" for that URL, with and without a browser User-Agent
+// (reproduce: curl -sD - -o /dev/null URL). The same summary call sent once per engine on 2026-10-21 with GPT-6 Sol
+// low: exa reported no content; openrouter, parallel, and native reported HTTP 401; firecrawl returned the article,
+// and the call cost $0.0110, including its $0.0025 fetch fee, against $0.0024 to $0.0025 for each of the others (evidence:
+// outputs/fetch-engines-50154244/, a local, git-ignored directory with the raw responses and the script that sent
+// them).
 const ARTICLE_FETCH_ENGINE = 'exa';
 const ARTICLE_FETCH_FEE_USD = 0.001;
 
