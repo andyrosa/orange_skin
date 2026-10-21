@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-8qKCQl0hoCMcjNPWGt0lubLjXuKFwkdHlPGLZvPGv54=' 'sha256-WVOx4mukOfQ6QxLi8tEwn/R1gihtnE2t6FDDjKMuT1Y='; style-src 'sha256-fDWsCcwItCwzuevbO4z9dVljjq5z6Yp1PcbDGDMJfks='; connect-src https://openrouter.ai https://hn.algolia.com https://hacker-news.firebaseio.com; img-src data:; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-8qKCQl0hoCMcjNPWGt0lubLjXuKFwkdHlPGLZvPGv54=' 'sha256-qI7AwPkj85iYBJ+lhgEvJDvN+rWHtBIWTtwbhfYTjuA='; style-src 'sha256-fDWsCcwItCwzuevbO4z9dVljjq5z6Yp1PcbDGDMJfks='; connect-src https://openrouter.ai https://hn.algolia.com https://hacker-news.firebaseio.com; img-src data:; base-uri 'none'; form-action 'none'">
 <title>Orange Split - For and Against on Hacker News</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 32 32%27%3E%3Crect width=%2732%27 height=%2732%27 fill=%27%23ff6600%27/%3E%3Ctext x=%2716%27 y=%2721%27 font-family=%27sans-serif%27 font-weight=%27bold%27 font-size=%2714%27 text-anchor=%27middle%27 fill=%27white%27%3EOS%3C/text%3E%3C/svg%3E">
 <style>
@@ -216,7 +216,7 @@ button { margin-right: 0.5rem; }
 <span id="thread-info"></span>
 <button id="refresh-thread" type="button" hidden>Refetch</button>
 </p>
-<p id="single-call-row"><label title="One request does extraction, consolidation, and scoring for the whole thread, and a second request by the same model writes the summary. No second scoring pass checks the stances. On the benchmark thread the first request found fewer axes than the stages do, except GPT-6.1 Sol at high, which took about 6 minutes for 323 comments. A pasted article always uses the stages."><input id="single-call" type="checkbox"> 2 calls (discouraged)</label></p>
+<p id="single-call-row"><label title="One request does extraction, consolidation, and scoring for the whole thread, and a second request by the same model writes the summary. No second scoring pass checks the stances. On the benchmark thread the first request found fewer axes than the stages do, except GPT-6.1 Sol at high, which took about 6 minutes for 323 comments. A pasted article always uses the stages."><input id="single-call" type="checkbox"> One-pass analysis (discouraged)</label></p>
 <div class="model-choices">
 <div class="model-choice">
 <label id="extraction-model-label" for="extraction-model-button">Extraction</label>
@@ -3887,7 +3887,7 @@ const modelPickers = [
     { role: 'singleCall', choices: SINGLE_CALL_MODELS, root: elements.singleCallModelPicker, select: elements.singleCallModel,
         header: elements.singleCallModelHeader, button: elements.singleCallModelButton, options: elements.singleCallModelOptions },
 ];
-const ROLE_TITLES = Object.freeze({ extraction: 'Extraction', consolidation: 'Consolidation', scoring: 'Scoring', summary: 'Summary', singleCall: '2 calls' });
+const ROLE_TITLES = Object.freeze({ extraction: 'Extraction', consolidation: 'Consolidation', scoring: 'Scoring', summary: 'Summary', singleCall: 'One-pass analysis' });
 // The picker columns that hold numbers, and those where a lower number is better.
 const PICKER_METRIC_KEYS = new Set(['cost', 'latency', 'agreement']);
 const LOWER_IS_BETTER = new Set(['cost', 'latency']);
@@ -3986,7 +3986,7 @@ function singleCallSelected() {
     return elements.singleCall.checked && !articleModeSelected;
 }
 
-// Shows the 2-calls picker in place of the four stage pickers while it applies.
+// Shows the one-pass picker in place of the four stage pickers while it applies.
 function showSingleCallPickers() {
     const single = singleCallSelected();
     for (const picker of modelPickers) {
@@ -4322,7 +4322,7 @@ function renderCachedResults() {
         const title = storedThread(selection.article)?.title
             ?? (isArticleId(selection.article) ? 'Pasted article' : `Thread ${selection.article}`);
         const models = selection.singleCall
-            ? `${modelDisplayName(SINGLE_CALL_MODELS[selection.singleCall])}, 2 calls`
+            ? `${modelDisplayName(SINGLE_CALL_MODELS[selection.singleCall])}, one-pass analysis`
             : [VOLUME_MODELS[selection.extraction], CONSOLIDATION_MODELS[selection.consolidation],
                 VOLUME_MODELS[selection.scoring], SUMMARY_MODELS[selection.summary]].map(modelDisplayName).join(' / ');
         const item = makeElement('li');
@@ -5444,7 +5444,7 @@ function emptyComparisonMessage(result) {
     return 'No verified comparisons were found in this selection.';
 }
 
-// The caveat under a thread result. A 2-calls result's stances come from one request, which no second pass checks.
+// The caveat under a thread result. A one-pass result's stances come from one request, which no second pass checks.
 function threadCaveat(singleCall) {
     const verification = singleCall
         ? 'Every stance comes from one request; no second pass checks it.'

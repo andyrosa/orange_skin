@@ -35,7 +35,7 @@ const DEFAULT_BUDGET_USD = 5;
 const ROLES = Object.freeze(['extraction', 'consolidation', 'scoring', 'summary']);
 // The roles with a README table: the four stage roles and the single call that replaces the first three.
 const TABLE_ROLES = Object.freeze([...ROLES, 'singleCall']);
-const TABLE_TITLES = Object.freeze({ extraction: 'Extraction', consolidation: 'Consolidation', scoring: 'Scoring', summary: 'Summary', singleCall: '2 calls' });
+const TABLE_TITLES = Object.freeze({ extraction: 'Extraction', consolidation: 'Consolidation', scoring: 'Scoring', summary: 'Summary', singleCall: 'One-pass analysis' });
 const SINGLE_CALL_FILE = path.join(lib.REPO_ROOT, 'data', 'single-call-benchmark.json');
 const ROLE_STAGE = Object.freeze({ extraction: 'extract', consolidation: 'consolidate', scoring: 'score', summary: 'synthesize' });
 const EMBED_PATTERN = /^const SILVER_BENCHMARK = .*$/m;
