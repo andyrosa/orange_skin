@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-s65ZHQw2f4+KvE55veF/j3RuYKfhhtHAZUhOImGr+Gw=' 'sha256-UYlLKt05JreXobGUISv05uyRnrPmyT/o0S9okNd6pgs='; style-src 'sha256-gYW5pYenKIOu9flnK/D6kuV/9PM08HAqdWzkVHzBOYQ='; connect-src https://openrouter.ai https://hn.algolia.com https://hacker-news.firebaseio.com; img-src data:; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-s65ZHQw2f4+KvE55veF/j3RuYKfhhtHAZUhOImGr+Gw=' 'sha256-eyDkRRfiGdrx1ZG0j6lnV9qiZELMwWoEbCZ3ZyG6UvU='; style-src 'sha256-DGolY6MEWXkQI0MjaA1ZlJAVNIMvZ+tgofF2gyJuNB8='; connect-src https://openrouter.ai https://hn.algolia.com https://hacker-news.firebaseio.com; img-src data:; base-uri 'none'; form-action 'none'">
 <title>Orange Split - For and Against on Hacker News</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 32 32%27%3E%3Crect width=%2732%27 height=%2732%27 fill=%27%23ff6600%27/%3E%3Ctext x=%2716%27 y=%2721%27 font-family=%27sans-serif%27 font-weight=%27bold%27 font-size=%2714%27 text-anchor=%27middle%27 fill=%27white%27%3EOS%3C/text%3E%3C/svg%3E">
 <style>
@@ -117,6 +117,7 @@ button { margin-right: 0.5rem; }
 .question-delete { margin: 0; padding: 0; border: 0; background: none; color: #0645ad; cursor: pointer; font: inherit; font-size: 12px; text-decoration: underline; }
 #question-storage-error { margin: 0.5rem 0 0; color: #b00020; font-size: 14px; }
 .question-deleted { align-self: center; color: #666; font-size: 12px; font-style: italic; }
+#article-link { display: block; overflow-wrap: anywhere; }
 #pasted-page-text { display: block; width: 100%; box-sizing: border-box; margin: 0.4rem 0; font: inherit; }
 #paste-page-error { margin: 0 0 0.4rem; color: #b00020; font-size: 14px; }
 .composer { margin-top: 0.75rem; padding: 0.4rem 0.5rem; border: 1px solid #b9c0ca; border-radius: 10px; }
@@ -293,7 +294,7 @@ button { margin-right: 0.5rem; }
 <ul id="cached-results-list" hidden></ul>
 <div id="status"></div>
 <details id="warnings" hidden><summary></summary><ul></ul></details>
-<section id="article-summary" hidden><h2>Article summary<span class="article-summary-meta"></span></h2><p></p>
+<section id="article-summary" hidden><h2>Article summary<span class="article-summary-meta"></span></h2><a id="article-link" target="_blank" rel="noopener noreferrer"></a><p></p>
 <div id="paste-page" hidden><label class="visually-hidden" for="pasted-page-text">Text of the linked page</label><textarea id="pasted-page-text" rows="6" placeholder="Paste the page's text here to summarize it and answer questions from it."></textarea><p id="paste-page-error" hidden></p><button id="summarize-pasted" type="button" hidden>Summarize</button></div>
 </section>
 <div id="results"></div>
@@ -3904,6 +3905,7 @@ const elements = {
     warnings: document.getElementById('warnings'),
     articleSummary: document.getElementById('article-summary'),
     pastePage: document.getElementById('paste-page'),
+    articleLink: document.getElementById('article-link'),
     pastedPageText: document.getElementById('pasted-page-text'),
     pastePageError: document.getElementById('paste-page-error'),
     summarizePasted: document.getElementById('summarize-pasted'),
@@ -5652,6 +5654,9 @@ async function startArticleSummary(thread, apiKey) {
     hideArticleSummary();
     if (!articleSummaryApplies(thread, DEFAULT_CONFIG)) return;
     const isCurrent = articleSummaryLatest.start();
+    // The page's link shows under the heading and opens the page in a new tab, for example to copy its text.
+    elements.articleLink.href = thread.url;
+    elements.articleLink.textContent = thread.url;
     let pageText;
     try {
         pageText = pastedPageOf(thread);
@@ -5659,7 +5664,7 @@ async function startArticleSummary(thread, apiKey) {
         showArticleSummaryText(`Unavailable: the pasted page text could not be read: ${error.message}`, '');
         return;
     }
-    showArticleSummaryText(pageText === null ? 'Fetching and summarizing the linked article.' : 'Summarizing the pasted page text.', '');
+    showArticleSummaryText(pageText === null ? 'Remotely summarizing the linked article.' : 'Summarizing the pasted page text.', '');
     const callOpenRouterChat = apiKey === null ? () => { throw new ApiKeyMissingError(); } : timedCallChat(makeOpenRouterCallChat({ apiKey }));
     const capUsd = articleSummaryCapInBox();
     let text;
@@ -5917,7 +5922,7 @@ async function askQuestion() {
     questionPending = true;
     const turn = addQuestionTurn(question, `${modelDisplayName(roleChoice('summary', summaryKey))} · max $${capUsd}`);
     refreshQuestionControls();
-    showQuestionAnswer(turn, pageText === null ? 'Fetching the linked page and answering.' : 'Answering from the pasted page text.', '');
+    showQuestionAnswer(turn, pageText === null ? 'Remotely answering from the linked page.' : 'Answering from the pasted page text.', '');
     const callOpenRouterChat = apiKey === null ? () => { throw new ApiKeyMissingError(); } : timedCallChat(makeOpenRouterCallChat({ apiKey }));
     let reply = null;
     let text;
