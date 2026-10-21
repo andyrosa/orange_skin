@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-OfutJlr0wMpajSMgs2txblxwv9vDWhWVWedf+usRz1g=' 'sha256-E57KkUU1SoWNZCJfxiEYOnJ8cvnuDut/x0WS7YUHd0k='; style-src 'sha256-ZMA2SlnhlJGzlVE+WVe+8leyvLWDXG8G3MrB1MT+T18='; connect-src https://openrouter.ai https://hn.algolia.com https://hacker-news.firebaseio.com; img-src data:; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-ETzGZUhQHvFKysraNLCvU37Ehz58RwzgCso7qpDl/PE=' 'sha256-9rZGhEULGAubgtSZg9mUbGeUCJS26oCB1Wx1pBtwkWM='; style-src 'sha256-ST5exQHVzpw1DS4nTFFcwKhb/pdMd+rE4ScoFpsSHwk='; connect-src https://openrouter.ai https://hn.algolia.com https://hacker-news.firebaseio.com; img-src data:; base-uri 'none'; form-action 'none'">
 <title>Orange Split - For and Against on Hacker News</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 32 32%27%3E%3Crect width=%2732%27 height=%2732%27 fill=%27%23ff6600%27/%3E%3Ctext x=%2716%27 y=%2721%27 font-family=%27sans-serif%27 font-weight=%27bold%27 font-size=%2714%27 text-anchor=%27middle%27 fill=%27white%27%3EOS%3C/text%3E%3C/svg%3E">
 <style>
@@ -105,13 +105,21 @@ button { margin-right: 0.5rem; }
 #article-summary-cap { width: 5em; }
 .article-summary-meta, .question-answer-meta { color: #666; font-size: 14px; font-weight: normal; }
 #question { margin-top: 1rem; max-width: 70rem; }
-#question-text { display: block; width: 100%; box-sizing: border-box; font: inherit; margin: 0.4rem 0; }
-.question-turn { line-height: 1.5; }
-.question-turn h3, #follow-up h3 { font-size: 1rem; margin: 0.75rem 0 0.25rem; }
-.question-asked { color: #555; font-style: italic; white-space: pre-wrap; margin: 0.25rem 0; }
-.question-answer-text { white-space: pre-wrap; margin: 0.25rem 0; }
-.follow-up-row { display: flex; align-items: flex-start; gap: 0.4rem; }
-#follow-up-text { flex: 1; min-width: 0; box-sizing: border-box; font: inherit; }
+#new-conversation-row { display: flex; justify-content: flex-end; }
+#new-conversation { margin: 0.5rem 0 0; padding: 0; border: 0; background: none; color: #0645ad; cursor: pointer; font: inherit; font-size: 14px; text-decoration: underline; }
+#question-turns { display: flex; flex-direction: column; gap: 0.5rem; margin-top: 0.5rem; line-height: 1.5; }
+.question-bubble { align-self: flex-end; max-width: 80%; padding: 0.35rem 0.7rem; border-radius: 12px 12px 2px 12px; background: #e6f0fa; white-space: pre-wrap; overflow-wrap: anywhere; }
+.question-sent { align-self: flex-end; margin-top: -0.35rem; color: #666; font-size: 12px; }
+.answer-bubble { align-self: flex-start; max-width: 92%; padding: 0.35rem 0.7rem; border-radius: 12px 12px 12px 2px; background: #f3f3f3; overflow-wrap: anywhere; }
+.question-answer-text { margin: 0; white-space: pre-wrap; }
+.answer-bubble .question-answer-meta { display: block; margin-top: 0.2rem; font-size: 12px; }
+.composer { margin-top: 0.75rem; padding: 0.4rem 0.5rem; border: 1px solid #b9c0ca; border-radius: 10px; }
+.composer:focus-within { outline: 2px solid #2b6cb0; outline-offset: 1px; }
+#question-text { display: block; width: 100%; box-sizing: border-box; padding: 0.15rem 0.2rem; border: 0; font: inherit; resize: vertical; }
+#question-text:focus { outline: none; }
+.composer-bar { display: flex; flex-wrap: wrap; align-items: center; gap: 0.4rem 0.75rem; margin-top: 0.3rem; color: #666; font-size: 14px; }
+.composer-bar label { display: inline-flex; align-items: center; gap: 0.3rem; margin-right: 0; }
+#ask-question { margin: 0 0 0 auto; }
 #results { margin-top: 1rem; }
 .narrative { max-width: 70rem; line-height: 1.5; }
 .group-toggle { margin: 0; padding: 0; border: 0; background: none; color: inherit; font: inherit; text-align: left; cursor: pointer; }
@@ -281,13 +289,11 @@ button { margin-right: 0.5rem; }
 <details id="warnings" hidden><summary></summary><ul></ul></details>
 <section id="article-summary" hidden><h2>Article summary<span class="article-summary-meta"></span></h2><p></p></section>
 <section id="question" hidden>
-<h2><label for="question-text">Ask a question</label></h2>
-<textarea id="question-text" rows="2" placeholder="Answered from the linked page and every comment in the thread. Asking here starts a new conversation. Enter asks; Shift+Enter starts a new line."></textarea>
-<label for="question-model">Model</label> <select id="question-model"></select> <label for="question-cap">Question max $</label> <input id="question-cap" type="number" min="0" step="0.05"> <button id="ask-question" type="button" hidden>Ask</button>
+<div id="new-conversation-row"><button id="new-conversation" type="button" hidden>New conversation</button></div>
 <div id="question-turns"></div>
-<div id="follow-up" hidden>
-<h3><label for="follow-up-text">Ask another question</label></h3>
-<div class="follow-up-row"><textarea id="follow-up-text" rows="2" placeholder="Sent with the questions and answers above, the linked page, and every comment in the thread. Enter asks; Shift+Enter starts a new line."></textarea> <button id="ask-follow-up" type="button" hidden>Ask</button></div>
+<div class="composer">
+<label class="visually-hidden" for="question-text">Question about the linked page and the comments</label><textarea id="question-text" rows="2" placeholder="Ask a question" title="Answered from the linked page, every comment in the thread, and the questions and answers above. Enter asks; Shift+Enter starts a new line."></textarea>
+<div class="composer-bar"><label for="question-model">Model <select id="question-model"></select></label> <label for="question-cap">Max $ <input id="question-cap" type="number" min="0" step="0.05"></label> <button id="ask-question" type="button" hidden>Ask</button></div>
 </div>
 </section>
 <div id="results"></div>
@@ -1541,7 +1547,7 @@ class WebFetchCapError extends Error {
 
 // The page boxes that cap the web fetch calls, which a refusal names.
 const ARTICLE_SUMMARY_CAP_BOX = 'Article summary max';
-const QUESTION_CAP_BOX = 'Question max';
+const QUESTION_CAP_BOX = 'question Max $';
 
 // A web fetch call's cap: usd dollars, the box that sets them, and the costLimit the fitted call names.
 function articleSummaryCap(usd) {
@@ -3846,9 +3852,7 @@ const elements = {
     questionCap: document.getElementById('question-cap'),
     askQuestion: document.getElementById('ask-question'),
     questionTurns: document.getElementById('question-turns'),
-    followUp: document.getElementById('follow-up'),
-    followUpText: document.getElementById('follow-up-text'),
-    askFollowUp: document.getElementById('ask-follow-up'),
+    newConversation: document.getElementById('new-conversation'),
     results: document.getElementById('results'),
     unverifiedAxes: document.getElementById('unverified-axes'),
 };
@@ -3911,7 +3915,7 @@ function maxCostInBox() {
 // it writes the default back.
 const DEFAULT_ARTICLE_SUMMARY_CAP_USD = 0.25;
 
-// The Question max box caps a question's calls the same way, kept in localStorage like Article summary max. A
+// The question form's Max $ box caps a question's calls the same way, kept in localStorage like Article summary max. A
 // question's request holds every comment, and the worst case counts each request byte as a token and the request
 // once per model pass. At GPT-6 Sol's OpenRouter prices read on 2026-10-20 ($2.50 per million prompt tokens at the
 // cache-write price, $10 per million output tokens), the benchmark thread's comments add 498 request bytes each,
@@ -5426,7 +5430,7 @@ const articleSummaryLatest = makeLatest();
 let articleSummaryAwaitingKey = null;
 // The thread whose summary the Article summary max box refused; raising the cap starts it again.
 let articleSummaryRefusedByCap = null;
-// OpenRouter's price table, read once per page for the Article summary max and Question max caps; a failed read
+// OpenRouter's price table, read once per page for the Article summary max and question Max $ caps; a failed read
 // is retried at the next summary or question.
 let capPrices = null;
 
@@ -5533,16 +5537,18 @@ function changeArticleSummaryCap() {
     }
 }
 
-// The question form, after the article summary, for a thread that links to a page. A question is answered by one
-// call, apart from any run, like the summary: a load of another source hides the form and the conversation and
-// makes a pending answer stale; its call still finishes and is cached.
+// The question form, after the article summary, for a thread that links to a page: New conversation, the
+// conversation as chat bubbles, and one composer with the question box above Model, Max $, and Ask. A question is
+// answered by one call, apart from any run, like the summary: a load of another source hides the form and the
+// conversation and makes a pending answer stale; its call still finishes and is cached.
 const questionLatest = makeLatest();
-// Whether the latest question's answer is pending; both Ask buttons are hidden while it is, so a second press
-// cannot pay twice.
+// Whether the latest question's answer is pending; Ask and New conversation are hidden while it is, so a second
+// press cannot pay twice.
 let questionPending = false;
-// The conversation: the questions asked since the top box last started one, oldest first. Each holds its parsed
-// reply ({ fetched, answer }), null while its answer is pending or after a failure, and the heading meta and answer
-// paragraph of its block. A follow-up question is sent with the questions that have a reply.
+// The conversation: the questions asked since the form was shown or New conversation was pressed, oldest first.
+// Each holds its parsed reply ({ fetched, answer }), null while its answer is pending or after a failure, and the
+// text paragraph and meta line of its answer bubble. A question is sent with the earlier questions that have a
+// reply.
 let questionTurns = [];
 
 function showQuestionForm(thread) {
@@ -5562,12 +5568,14 @@ function hideQuestion() {
     refreshQuestionControls();
 }
 
-// The follow-up box shows after the conversation once a question has a reply. Each Ask shows only when it can send
-// something: its box holds a question and no answer is pending.
+// Ask shows only when the box holds a question and no answer is pending; New conversation only when there is a
+// conversation to clear and no answer is pending. The box's placeholder says whether a question would follow a
+// replied one.
 function refreshQuestionControls() {
     elements.askQuestion.hidden = questionPending || elements.questionText.value.trim() === '';
-    elements.followUp.hidden = !questionTurns.some(turn => turn.reply !== null);
-    elements.askFollowUp.hidden = questionPending || elements.followUp.hidden || elements.followUpText.value.trim() === '';
+    elements.newConversation.hidden = questionPending || questionTurns.length === 0;
+    const placeholder = questionTurns.some(turn => turn.reply !== null) ? 'Ask another question' : 'Ask a question';
+    if (elements.questionText.placeholder !== placeholder) elements.questionText.placeholder = placeholder;
 }
 
 // The question pull-down follows the summary picker: it starts at the summary model, and every change of the
@@ -5584,34 +5592,39 @@ function fillQuestionModelOptions() {
     }));
 }
 
-// Adds a question's block at the end of the conversation: a heading, the question as asked, and the answer.
-function addQuestionTurn(question) {
-    const meta = makeElement('span', { className: 'question-answer-meta' });
-    const heading = makeElement('h3', { text: 'Answer' });
-    heading.append(meta);
+// Adds a question to the end of the conversation: its bubble, a line with the model and Max $ it was sent with,
+// and its answer bubble.
+function addQuestionTurn(question, summaryKey, capUsd) {
     const answerText = makeElement('p', { className: 'question-answer-text' });
-    const block = makeElement('div', { className: 'question-turn' });
-    block.append(heading, makeElement('p', { className: 'question-asked', text: question }), answerText);
-    elements.questionTurns.append(block);
-    const turn = { question, reply: null, meta, answerText };
+    const answerMeta = makeElement('span', { className: 'question-answer-meta' });
+    const answerBubble = makeElement('div', { className: 'answer-bubble' });
+    answerBubble.append(answerText, answerMeta);
+    elements.questionTurns.append(
+        makeElement('div', { className: 'question-bubble', text: question }),
+        makeElement('div', { className: 'question-sent', text: `${modelDisplayName(roleChoice('summary', summaryKey))} · max $${capUsd}` }),
+        answerBubble);
+    const turn = { question, reply: null, answerText, answerMeta };
     questionTurns.push(turn);
     return turn;
 }
 
-// meta is the text after the heading: the model, then the answer's time and cost, or what a failure spent.
-function showQuestionTurn(turn, text, meta) {
+// figures is the answer's time and cost, or what a failure spent; an empty one hides the meta line.
+function showQuestionAnswer(turn, text, figures) {
     turn.answerText.textContent = text;
-    turn.meta.textContent = ` · ${meta}`;
+    turn.answerMeta.textContent = figures;
+    turn.answerMeta.hidden = figures === '';
 }
 
-// Asks question after the questions and replies in history and adds it to the end of the conversation. A failure
-// puts the question back in restoreBox, when that is a box and it is still empty, so Ask can send it again. A
-// question is answered with the held key, or the typed one, which it then holds as Run does; with neither, a cached
-// answer still shows. Taking a key starts a summary that waits for one.
-async function askQuestion(question, history, restoreBox) {
+// Sends the box's question with the earlier questions that have a reply, adds it to the end of the conversation,
+// and empties the box; a failure puts the question back in the box when the box is still empty, so Ask can send it
+// again. A question is answered with the held key, or the typed one, which it then holds as Run does; with neither,
+// a cached answer still shows. Taking a key starts a summary that waits for one.
+async function askQuestion() {
+    const question = elements.questionText.value.trim();
+    const history = questionTurns.filter(turn => turn.reply !== null).map(turn => ({ question: turn.question, reply: turn.reply }));
+    elements.questionText.value = '';
     const thread = loadedThread;
     const summaryKey = elements.questionModel.value;
-    const modelName = modelDisplayName(roleChoice('summary', summaryKey));
     const capUsd = questionCapInBox();
     const apiKey = keyAvailable() ? resolveApiKey() : null;
     if (apiKey !== null && articleSummaryAwaitingKey === thread) {
@@ -5619,55 +5632,46 @@ async function askQuestion(question, history, restoreBox) {
     }
     const isCurrent = questionLatest.start();
     questionPending = true;
-    const turn = addQuestionTurn(question);
+    const turn = addQuestionTurn(question, summaryKey, capUsd);
     refreshQuestionControls();
-    showQuestionTurn(turn, 'Fetching the linked page and answering.', modelName);
+    showQuestionAnswer(turn, 'Fetching the linked page and answering.', '');
     const callOpenRouterChat = apiKey === null ? () => { throw new ApiKeyMissingError(); } : timedCallChat(makeOpenRouterCallChat({ apiKey }));
     let reply = null;
     let text;
-    let meta;
+    let figures;
     try {
         const outcome = await answerQuestion({ thread, summaryKey, question, history, callChat: makeCachedCallChat(callOpenRouterChat, cacheStore),
             prices: await capPriceTable(), capUsd });
         const { answer, costUsd } = outcome;
         reply = answer;
-        const overCap = costUsd > capUsd ? ` (This answer cost $${costUsd.toFixed(COST_DIGITS)}, more than the Question max of $${capUsd.toFixed(COST_DIGITS)}.)` : '';
+        const overCap = costUsd > capUsd ? ` (This answer cost $${costUsd.toFixed(COST_DIGITS)}, more than the ${QUESTION_CAP_BOX} of $${capUsd.toFixed(COST_DIGITS)}.)` : '';
         text = `${answer.answer}${overCap}`;
         const fetchedPart = answer.fetched ? '' : ', linked page not read';
-        meta = `${modelName} · ${callFiguresText(outcome)}${fetchedPart}`;
+        figures = `${callFiguresText(outcome)}${fetchedPart}`;
     } catch (error) {
         if (!(error instanceof ApiKeyMissingError)) console.error(error);
         text = error instanceof ApiKeyMissingError
             ? 'Enter an OpenRouter key to ask: no cached answer matches this question, model, and conversation.'
             : `Unavailable: ${error.message}`;
         const spentUsd = error.spentUsd ?? 0;
-        meta = spentUsd > 0 ? `${modelName} · $${spentUsd.toFixed(COST_DIGITS)} spent` : modelName;
+        figures = spentUsd > 0 ? `$${spentUsd.toFixed(COST_DIGITS)} spent` : '';
     }
     refreshStorageInfo();
     if (!isCurrent()) return;
     questionPending = false;
     turn.reply = reply;
-    if (reply === null && restoreBox !== null && restoreBox.value.trim() === '') {
-        restoreBox.value = question;
+    if (reply === null && elements.questionText.value.trim() === '') {
+        elements.questionText.value = question;
     }
-    showQuestionTurn(turn, text, meta);
+    showQuestionAnswer(turn, text, figures);
     refreshQuestionControls();
 }
 
-// The top box starts a new conversation: its question is sent without the earlier ones, which leave the page.
-// The top box keeps its question.
-function startQuestionConversation() {
-    const question = elements.questionText.value.trim();
+// New conversation removes the questions and answers, so the next question is sent without them.
+function startNewQuestionConversation() {
     clearQuestionTurns();
-    askQuestion(question, [], null);
-}
-
-// The follow-up box sends its question with every earlier question that has a reply, and empties itself.
-function askFollowUpQuestion() {
-    const question = elements.followUpText.value.trim();
-    const history = questionTurns.filter(turn => turn.reply !== null).map(turn => ({ question: turn.question, reply: turn.reply }));
-    elements.followUpText.value = '';
-    askQuestion(question, history, elements.followUpText);
+    refreshQuestionControls();
+    elements.questionText.focus();
 }
 
 // Keeps the box's cap in localStorage. A question the old cap refused is asked again by pressing Ask.
@@ -6264,17 +6268,16 @@ elements.singleCall.addEventListener('change', () => {
 elements.maxCost.addEventListener('change', refitShareAndEstimate);
 elements.articleSummaryCap.addEventListener('change', changeArticleSummaryCap);
 elements.questionCap.addEventListener('change', changeQuestionCap);
-// Enter in a question box presses its Ask button when that button shows; Shift+Enter starts a new line.
-for (const [box, button, ask] of [[elements.questionText, elements.askQuestion, startQuestionConversation], [elements.followUpText, elements.askFollowUp, askFollowUpQuestion]]) {
-    box.addEventListener('input', refreshQuestionControls);
-    box.addEventListener('keydown', event => {
-        if (event.key === 'Enter' && !event.shiftKey && !event.isComposing) {
-            event.preventDefault();
-            if (!button.hidden) ask();
-        }
-    });
-    button.addEventListener('click', ask);
-}
+elements.questionText.addEventListener('input', refreshQuestionControls);
+// Enter in the question box presses Ask when Ask shows; Shift+Enter starts a new line.
+elements.questionText.addEventListener('keydown', event => {
+    if (event.key === 'Enter' && !event.shiftKey && !event.isComposing) {
+        event.preventDefault();
+        if (!elements.askQuestion.hidden) askQuestion();
+    }
+});
+elements.askQuestion.addEventListener('click', askQuestion);
+elements.newConversation.addEventListener('click', startNewQuestionConversation);
 // The summary picker's tooltip says whether the selected combination was benchmarked, so every change resyncs it.
 const SUMMARY_PICKER_INDEX = 3;
 modelPickers.forEach((picker, index) => {
