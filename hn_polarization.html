@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-ETzGZUhQHvFKysraNLCvU37Ehz58RwzgCso7qpDl/PE=' 'sha256-tcn4SydqomEhh6NE7PCifOpDHRYCbJKAUzG3SeKHgJ8='; style-src 'sha256-QZTXBAhWKEt1rNz0+lOUPxVCO5OceEQx90X+wk1JXbY='; connect-src https://openrouter.ai https://hn.algolia.com https://hacker-news.firebaseio.com; img-src data:; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-sz9R+DLuNu1Z03LzOpCpUviy0oYZ1fCuI31Vr56U00o=' 'sha256-gsoyK7qGf9mtSzogPkdLzJAgjpVdXXfKXRBbUOm0u+M='; style-src 'sha256-/hCkSoW8EAzukSBCZfpfR4QTLvjcwFNljdoLGd5Mg2k='; connect-src https://openrouter.ai https://hn.algolia.com https://hacker-news.firebaseio.com; img-src data:; base-uri 'none'; form-action 'none'">
 <title>Orange Split - For and Against on Hacker News</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 32 32%27%3E%3Crect width=%2732%27 height=%2732%27 fill=%27%23ff6600%27/%3E%3Ctext x=%2716%27 y=%2721%27 font-family=%27sans-serif%27 font-weight=%27bold%27 font-size=%2714%27 text-anchor=%27middle%27 fill=%27white%27%3EOS%3C/text%3E%3C/svg%3E">
 <style>
@@ -112,7 +112,10 @@ button { margin-right: 0.5rem; }
 .question-sent { align-self: flex-end; margin-top: -0.35rem; color: #666; font-size: 12px; }
 .answer-bubble { align-self: flex-start; max-width: 92%; padding: 0.35rem 0.7rem; border-radius: 12px 12px 12px 2px; background: #f3f3f3; overflow-wrap: anywhere; }
 .question-answer-text { margin: 0; white-space: pre-wrap; }
-.answer-bubble .question-answer-meta { display: block; margin-top: 0.2rem; font-size: 12px; }
+.answer-foot { display: flex; flex-wrap: wrap; align-items: baseline; gap: 0.2rem 0.75rem; margin-top: 0.2rem; }
+.answer-bubble .question-answer-meta { font-size: 12px; }
+.question-delete { margin: 0; padding: 0; border: 0; background: none; color: #0645ad; cursor: pointer; font: inherit; font-size: 12px; text-decoration: underline; }
+#question-storage-error { margin: 0.5rem 0 0; color: #b00020; font-size: 14px; }
 .composer { margin-top: 0.75rem; padding: 0.4rem 0.5rem; border: 1px solid #b9c0ca; border-radius: 10px; }
 .composer:focus-within { outline: 2px solid #2b6cb0; outline-offset: 1px; }
 #question-text { display: block; width: 100%; box-sizing: border-box; padding: 0.15rem 0.2rem; border: 0; font: inherit; resize: vertical; }
@@ -277,7 +280,7 @@ button { margin-right: 0.5rem; }
 <label>OpenRouter key <input id="api-key" type="password" autocomplete="off"></label> <label><input id="remember-key" type="checkbox"> Remember pasted key</label> <button id="connect-openrouter" type="button" hidden>Sign in with OpenRouter instead</button>
 </p>
 <p>
-<span id="storage-info">Cached locally: <span id="cached-call-count"></span>, <button id="cached-results-toggle" type="button" aria-expanded="false" aria-controls="cached-results-list" title="Finished runs stored for immediate page restoration; selecting one restores its models, share and budget"></button>, <span id="cached-snapshot-count"></span><span id="cached-date-range" title="Earliest and latest thread snapshot fetch times, in local time"></span>, <span id="quelched-count"></span></span>
+<span id="storage-info">Cached locally: <span id="cached-call-count"></span>, <button id="cached-results-toggle" type="button" aria-expanded="false" aria-controls="cached-results-list" title="Finished runs stored for immediate page restoration; selecting one restores its models, share and budget"></button>, <span id="cached-snapshot-count"></span><span id="cached-date-range" title="Earliest and latest thread snapshot fetch times, in local time"></span>, <span id="quelched-count"></span>, <span id="saved-question-count"></span></span>
 <button id="export-cache" type="button">Export</button>
 <button id="import-cache" type="button">Import</button>
 <input id="import-cache-file" type="file" accept=".json,application/json" hidden>
@@ -292,6 +295,7 @@ button { margin-right: 0.5rem; }
 <section id="question" hidden>
 <div id="new-conversation-row"><button id="new-conversation" type="button" hidden>New conversation</button></div>
 <div id="question-turns"></div>
+<p id="question-storage-error" hidden></p>
 <div class="composer">
 <label class="visually-hidden" for="question-text">Question about the linked page and the comments</label><textarea id="question-text" rows="2" placeholder="Ask a question" title="Answered from the linked page, every comment in the thread, and the questions and answers above. Enter asks; Shift+Enter starts a new line."></textarea>
 <div class="composer-bar"><label for="question-model">Model <select id="question-model"></select></label> <label for="question-cap">Max $ <input id="question-cap" type="number" min="0" step="0.05"></label> <button id="ask-question" type="button" hidden>Ask</button></div>
@@ -328,6 +332,7 @@ const CONSTANTS = Object.freeze({
     STORAGE_KEY_ARTICLE_SUMMARY_CAP: 'article_summary_cap_usd',
     STORAGE_KEY_QUESTION_CAP: 'question_cap_usd',
     STORAGE_KEY_QUELCHED: 'hn_polarization_quelched',
+    STORAGE_KEY_QUESTIONS: 'hn_polarization_questions',
     CACHE_KEY_PREFIX: 'hn_polarization_cache:',
     THREAD_KEY_PREFIX: 'hn_polarization_thread:',
     RESULT_KEY_PREFIX: 'hn_polarization_result:',
@@ -3838,6 +3843,7 @@ const elements = {
     cachedDateRange: document.getElementById('cached-date-range'),
     cachedSnapshotCount: document.getElementById('cached-snapshot-count'),
     quelchedCount: document.getElementById('quelched-count'),
+    savedQuestionCount: document.getElementById('saved-question-count'),
     exportCache: document.getElementById('export-cache'),
     importCache: document.getElementById('import-cache'),
     importCacheFile: document.getElementById('import-cache-file'),
@@ -3854,6 +3860,7 @@ const elements = {
     askQuestion: document.getElementById('ask-question'),
     questionTurns: document.getElementById('question-turns'),
     newConversation: document.getElementById('new-conversation'),
+    questionStorageError: document.getElementById('question-storage-error'),
     results: document.getElementById('results'),
     resultsEnd: document.getElementById('results-end'),
     unverifiedAxes: document.getElementById('unverified-axes'),
@@ -4217,7 +4224,7 @@ function setRunning() {
     for (const input of [elements.articleScope, elements.articleText, elements.articleTitle, elements.frontPageScope, elements.searchAllScope, elements.threadId, elements.extractionModelButton, elements.consolidationModelButton, elements.scoringModelButton, elements.summaryModelButton, elements.maxCost, elements.share]) input.disabled = isBusy;
     elements.loadThread.disabled = isBusy;
     elements.refreshThread.disabled = isBusy;
-    elements.exportCache.disabled = isBusy || nothingStored();
+    elements.exportCache.disabled = isBusy || nothingExportable();
     elements.importCache.disabled = isBusy;
     elements.deleteCached.disabled = isBusy;
     for (const button of elements.cachedResultsList.querySelectorAll('button')) {
@@ -4226,9 +4233,15 @@ function setRunning() {
     refreshRunButton();
 }
 
-// Export and Delete have nothing to act on: no cache entry and no quelched-story list is stored.
-function nothingStored() {
+// Export has nothing to act on: no cache entry and no quelched-story list is stored. Export leaves out the saved
+// questions and answers.
+function nothingExportable() {
     return cacheStore.count() + snapshotStore.count() + resultStore.count() === 0 && localStorage.getItem(CONSTANTS.STORAGE_KEY_QUELCHED) === null;
+}
+
+// Delete has nothing to act on: nothing Export writes and no saved questions and answers are stored.
+function nothingStored() {
+    return nothingExportable() && localStorage.getItem(CONSTANTS.STORAGE_KEY_QUESTIONS) === null;
 }
 
 // A run or a cache import is in progress, so the controls that start either one wait.
@@ -4370,9 +4383,19 @@ function refreshStorageInfo() {
     }
     elements.quelchedCount.textContent = quelchedText;
     elements.quelchedCount.title = quelchedError;
+    let savedQuestionText;
+    let savedQuestionError = '';
+    try {
+        savedQuestionText = counted(Object.values(savedQuestions()).reduce((sum, turns) => sum + turns.length, 0), 'saved question', 'saved questions');
+    } catch (error) {
+        savedQuestionText = 'saved questions unreadable';
+        savedQuestionError = error.message;
+    }
+    elements.savedQuestionCount.textContent = savedQuestionText;
+    elements.savedQuestionCount.title = savedQuestionError;
     renderCachedDateRange();
     renderCachedResults();
-    elements.exportCache.disabled = pageBusy() || nothingStored();
+    elements.exportCache.disabled = pageBusy() || nothingExportable();
     elements.deleteCached.hidden = nothingStored();
 }
 
@@ -5540,22 +5563,80 @@ function changeArticleSummaryCap() {
     }
 }
 
-// The question form, after the article summary, for a thread that links to a page: New conversation, the
+// The question form, after the discussion summary, for a thread that links to a page: New conversation, the
 // conversation as chat bubbles, and one composer with the question box above Model, Max $, and Ask. A question is
 // answered by one call, apart from any run, like the summary: a load of another source hides the form and the
-// conversation and makes a pending answer stale; its call still finishes and is cached.
+// conversation and makes a pending answer stale; its call still finishes and is cached, but its answer is not saved
+// with the conversation.
 const questionLatest = makeLatest();
-// Whether the latest question's answer is pending; Ask and New conversation are hidden while it is, so a second
-// press cannot pay twice.
+// Whether the latest question's answer is pending. Ask, New conversation, and each Delete are hidden while it is, so
+// a second press cannot pay twice and the conversation the pending question was sent with stays as it was sent.
 let questionPending = false;
-// The conversation: the questions asked since the form was shown or New conversation was pressed, oldest first.
-// Each holds its parsed reply ({ fetched, answer }), null while its answer is pending or after a failure, and the
-// text paragraph and meta line of its answer bubble. A question is sent with the earlier questions that have a
-// reply.
+// The id of the thread whose conversation the form shows, as a string, or null while the form is hidden.
+let questionThreadId = null;
+// The conversation: the thread's saved questions, then those asked since, oldest first; New conversation empties
+// it. Each holds its question, the model and Max $ it was sent with (sent), its parsed reply ({ fetched, answer }),
+// null while its answer is pending or after a failure, the answer text and figures it shows (time and cost, or what
+// a failure spent), and its elements. A question is sent with the earlier questions that have a reply.
 let questionTurns = [];
 
+// localStorage keeps each thread's replied questions under STORAGE_KEY_QUESTIONS, as an object from thread id to a
+// list of { question, sent, reply, text, figures }, so a reload or a return to the thread shows them again. A
+// pending or failed question is not kept.
+function savedQuestions() {
+    const raw = localStorage.getItem(CONSTANTS.STORAGE_KEY_QUESTIONS);
+    if (raw === null) return {};
+    const saved = JSON.parse(raw);
+    const isText = value => typeof value === 'string';
+    const isSavedTurn = turn => turn !== null && typeof turn === 'object' && isText(turn.question) && isText(turn.sent)
+        && isText(turn.text) && isText(turn.figures) && turn.reply !== null && typeof turn.reply === 'object'
+        && typeof turn.reply.fetched === 'boolean' && isText(turn.reply.answer);
+    if (saved === null || typeof saved !== 'object' || Array.isArray(saved)
+        || !Object.values(saved).every(turns => Array.isArray(turns) && turns.every(isSavedTurn))) {
+        throw new Error(`localStorage ${CONSTANTS.STORAGE_KEY_QUESTIONS} does not hold lists of questions and answers by thread`);
+    }
+    return saved;
+}
+
+// Writes the shown conversation's replied questions as the thread's saved ones; a thread with none is removed. A
+// failure shows in the form, since the status line belongs to runs.
+function saveQuestionTurns() {
+    try {
+        const saved = savedQuestions();
+        const replied = questionTurns.filter(turn => turn.reply !== null)
+            .map(({ question, sent, reply, text, figures }) => ({ question, sent, reply, text, figures }));
+        if (replied.length === 0) delete saved[questionThreadId];
+        else saved[questionThreadId] = replied;
+        if (Object.keys(saved).length === 0) localStorage.removeItem(CONSTANTS.STORAGE_KEY_QUESTIONS);
+        else localStorage.setItem(CONSTANTS.STORAGE_KEY_QUESTIONS, JSON.stringify(saved));
+    } catch (error) {
+        showQuestionStorageError(`The questions and answers could not be saved in this browser: ${error.message}`);
+    }
+    refreshStorageInfo();
+}
+
+function showQuestionStorageError(text) {
+    elements.questionStorageError.textContent = text;
+    elements.questionStorageError.hidden = false;
+}
+
+// Shows the form, with the thread's saved conversation, for a thread that links to a page.
 function showQuestionForm(thread) {
-    elements.question.hidden = !linksToPage(thread);
+    if (!linksToPage(thread)) return;
+    questionThreadId = String(thread.id);
+    elements.question.hidden = false;
+    let saved = [];
+    try {
+        saved = savedQuestions()[questionThreadId] ?? [];
+    } catch (error) {
+        showQuestionStorageError(`The saved questions and answers could not be read: ${error.message}`);
+    }
+    for (const savedTurn of saved) {
+        const turn = addQuestionTurn(savedTurn.question, savedTurn.sent);
+        turn.reply = savedTurn.reply;
+        showQuestionAnswer(turn, savedTurn.text, savedTurn.figures);
+    }
+    refreshQuestionControls();
 }
 
 function clearQuestionTurns() {
@@ -5566,17 +5647,20 @@ function clearQuestionTurns() {
 function hideQuestion() {
     questionLatest.cancel();
     questionPending = false;
+    questionThreadId = null;
     clearQuestionTurns();
+    elements.questionStorageError.hidden = true;
     elements.question.hidden = true;
     refreshQuestionControls();
 }
 
 // Ask shows only when the box holds a question and no answer is pending; New conversation only when there is a
-// conversation to clear and no answer is pending. The box's placeholder says whether a question would follow a
-// replied one.
+// conversation to clear and no answer is pending; each Delete only while no answer is pending. The box's
+// placeholder says whether a question would follow a replied one.
 function refreshQuestionControls() {
     elements.askQuestion.hidden = questionPending || elements.questionText.value.trim() === '';
     elements.newConversation.hidden = questionPending || questionTurns.length === 0;
+    for (const turn of questionTurns) turn.deleteButton.hidden = questionPending;
     const placeholder = questionTurns.some(turn => turn.reply !== null) ? 'Ask another question' : 'Ask a question';
     if (elements.questionText.placeholder !== placeholder) elements.questionText.placeholder = placeholder;
 }
@@ -5595,27 +5679,42 @@ function fillQuestionModelOptions() {
     }));
 }
 
-// Adds a question to the end of the conversation: its bubble, a line with the model and Max $ it was sent with,
-// and its answer bubble.
-function addQuestionTurn(question, summaryKey, capUsd) {
+// Adds a question to the end of the conversation: its bubble, the sent line (the model and Max $ it was sent with),
+// and its answer bubble, which ends in the answer's figures and Delete.
+function addQuestionTurn(question, sent) {
+    const blocks = [makeElement('div', { className: 'question-bubble', text: question }), makeElement('div', { className: 'question-sent', text: sent })];
     const answerText = makeElement('p', { className: 'question-answer-text' });
     const answerMeta = makeElement('span', { className: 'question-answer-meta' });
+    const deleteButton = makeElement('button', { className: 'question-delete', text: 'Delete' });
+    deleteButton.type = 'button';
+    const answerFoot = makeElement('div', { className: 'answer-foot' });
+    answerFoot.append(answerMeta, deleteButton);
     const answerBubble = makeElement('div', { className: 'answer-bubble' });
-    answerBubble.append(answerText, answerMeta);
-    elements.questionTurns.append(
-        makeElement('div', { className: 'question-bubble', text: question }),
-        makeElement('div', { className: 'question-sent', text: `${modelDisplayName(roleChoice('summary', summaryKey))} · max $${capUsd}` }),
-        answerBubble);
-    const turn = { question, reply: null, answerText, answerMeta };
+    answerBubble.append(answerText, answerFoot);
+    blocks.push(answerBubble);
+    elements.questionTurns.append(...blocks);
+    const turn = { question, sent, reply: null, text: '', figures: '', blocks, answerText, answerMeta, deleteButton };
+    deleteButton.addEventListener('click', () => deleteQuestionTurn(turn));
     questionTurns.push(turn);
     return turn;
 }
 
-// figures is the answer's time and cost, or what a failure spent; an empty one hides the meta line.
+// figures is the answer's time and cost, or what a failure spent; an empty one hides the meta text.
 function showQuestionAnswer(turn, text, figures) {
+    turn.text = text;
+    turn.figures = figures;
     turn.answerText.textContent = text;
     turn.answerMeta.textContent = figures;
     turn.answerMeta.hidden = figures === '';
+}
+
+// Delete removes one question and its answer from the page and from the saved conversation, so later questions are
+// sent without them.
+function deleteQuestionTurn(turn) {
+    for (const block of turn.blocks) block.remove();
+    questionTurns = questionTurns.filter(other => other !== turn);
+    saveQuestionTurns();
+    refreshQuestionControls();
 }
 
 // Sends the box's question with the earlier questions that have a reply, adds it to the end of the conversation,
@@ -5635,7 +5734,7 @@ async function askQuestion() {
     }
     const isCurrent = questionLatest.start();
     questionPending = true;
-    const turn = addQuestionTurn(question, summaryKey, capUsd);
+    const turn = addQuestionTurn(question, `${modelDisplayName(roleChoice('summary', summaryKey))} · max $${capUsd}`);
     refreshQuestionControls();
     showQuestionAnswer(turn, 'Fetching the linked page and answering.', '');
     const callOpenRouterChat = apiKey === null ? () => { throw new ApiKeyMissingError(); } : timedCallChat(makeOpenRouterCallChat({ apiKey }));
@@ -5667,12 +5766,15 @@ async function askQuestion() {
         elements.questionText.value = question;
     }
     showQuestionAnswer(turn, text, figures);
+    if (reply !== null) saveQuestionTurns();
     refreshQuestionControls();
 }
 
-// New conversation removes the questions and answers, so the next question is sent without them.
+// New conversation removes the questions and answers from the page and from the saved conversation, so the next
+// question is sent without them.
 function startNewQuestionConversation() {
     clearQuestionTurns();
+    saveQuestionTurns();
     refreshQuestionControls();
     elements.questionText.focus();
 }
@@ -5982,6 +6084,7 @@ elements.deleteCached.addEventListener('click', async () => {
     const removedSnapshots = snapshotStore.count();
     const removedResults = resultStore.count();
     const quelchedStored = localStorage.getItem(CONSTANTS.STORAGE_KEY_QUELCHED) !== null;
+    const questionsStored = localStorage.getItem(CONSTANTS.STORAGE_KEY_QUESTIONS) !== null;
     try {
         await cacheStorage.write([], [...cacheStore.keys(), ...snapshotStore.keys(), ...resultStore.keys()]);
     } catch (error) {
@@ -5989,12 +6092,17 @@ elements.deleteCached.addEventListener('click', async () => {
         return;
     }
     localStorage.removeItem(CONSTANTS.STORAGE_KEY_QUELCHED);
+    localStorage.removeItem(CONSTANTS.STORAGE_KEY_QUESTIONS);
+    // The shown conversation leaves with the saved ones, so the page does not show what is no longer stored.
+    clearQuestionTurns();
+    refreshQuestionControls();
     flattenedThreads.clear();
     probeMemo.clear();
     afterStoreChange();
     const quelchedPart = quelchedStored ? ' The quelched stories show again.' : '';
+    const questionsPart = questionsStored ? ' The saved questions and answers are removed.' : '';
     const keyPart = currentApiKey() === null ? '' : ' The OpenRouter key is kept.';
-    setStatus(`Deleted from this browser: ${counted(removedCalls, 'AI call')}, ${counted(removedSnapshots, 'thread or article snapshot', 'thread and article snapshots')}, and ${counted(removedResults, 'summary', 'summaries')}.${quelchedPart}${keyPart}`);
+    setStatus(`Deleted from this browser: ${counted(removedCalls, 'AI call')}, ${counted(removedSnapshots, 'thread or article snapshot', 'thread and article snapshots')}, and ${counted(removedResults, 'summary', 'summaries')}.${quelchedPart}${questionsPart}${keyPart}`);
 });
 elements.loadThread.addEventListener('click', loadThreadFromBox);
 elements.cachedResultsToggle.addEventListener('click', () => {
