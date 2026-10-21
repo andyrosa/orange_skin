@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-ETzGZUhQHvFKysraNLCvU37Ehz58RwzgCso7qpDl/PE=' 'sha256-9rZGhEULGAubgtSZg9mUbGeUCJS26oCB1Wx1pBtwkWM='; style-src 'sha256-ST5exQHVzpw1DS4nTFFcwKhb/pdMd+rE4ScoFpsSHwk='; connect-src https://openrouter.ai https://hn.algolia.com https://hacker-news.firebaseio.com; img-src data:; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-ETzGZUhQHvFKysraNLCvU37Ehz58RwzgCso7qpDl/PE=' 'sha256-tcn4SydqomEhh6NE7PCifOpDHRYCbJKAUzG3SeKHgJ8='; style-src 'sha256-QZTXBAhWKEt1rNz0+lOUPxVCO5OceEQx90X+wk1JXbY='; connect-src https://openrouter.ai https://hn.algolia.com https://hacker-news.firebaseio.com; img-src data:; base-uri 'none'; form-action 'none'">
 <title>Orange Split - For and Against on Hacker News</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 32 32%27%3E%3Crect width=%2732%27 height=%2732%27 fill=%27%23ff6600%27/%3E%3Ctext x=%2716%27 y=%2721%27 font-family=%27sans-serif%27 font-weight=%27bold%27 font-size=%2714%27 text-anchor=%27middle%27 fill=%27white%27%3EOS%3C/text%3E%3C/svg%3E">
 <style>
@@ -120,7 +120,7 @@ button { margin-right: 0.5rem; }
 .composer-bar { display: flex; flex-wrap: wrap; align-items: center; gap: 0.4rem 0.75rem; margin-top: 0.3rem; color: #666; font-size: 14px; }
 .composer-bar label { display: inline-flex; align-items: center; gap: 0.3rem; margin-right: 0; }
 #ask-question { margin: 0 0 0 auto; }
-#results { margin-top: 1rem; }
+#results, #results-end { margin-top: 1rem; }
 .narrative { max-width: 70rem; line-height: 1.5; }
 .group-toggle { margin: 0; padding: 0; border: 0; background: none; color: inherit; font: inherit; text-align: left; cursor: pointer; }
 .group-toggle::before { content: "\25B8\00A0"; }
@@ -288,6 +288,7 @@ button { margin-right: 0.5rem; }
 <div id="status"></div>
 <details id="warnings" hidden><summary></summary><ul></ul></details>
 <section id="article-summary" hidden><h2>Article summary<span class="article-summary-meta"></span></h2><p></p></section>
+<div id="results"></div>
 <section id="question" hidden>
 <div id="new-conversation-row"><button id="new-conversation" type="button" hidden>New conversation</button></div>
 <div id="question-turns"></div>
@@ -296,7 +297,7 @@ button { margin-right: 0.5rem; }
 <div class="composer-bar"><label for="question-model">Model <select id="question-model"></select></label> <label for="question-cap">Max $ <input id="question-cap" type="number" min="0" step="0.05"></label> <button id="ask-question" type="button" hidden>Ask</button></div>
 </div>
 </section>
-<div id="results"></div>
+<div id="results-end"></div>
 <details id="unverified-axes" hidden>
 <summary></summary>
 <p>Consolidation proposed these axes, but no comment stance matched between both scoring passes. They are diagnostic output, not counted results.</p>
@@ -3854,6 +3855,7 @@ const elements = {
     questionTurns: document.getElementById('question-turns'),
     newConversation: document.getElementById('new-conversation'),
     results: document.getElementById('results'),
+    resultsEnd: document.getElementById('results-end'),
     unverifiedAxes: document.getElementById('unverified-axes'),
 };
 
@@ -3919,8 +3921,8 @@ const DEFAULT_ARTICLE_SUMMARY_CAP_USD = 0.25;
 // question's request holds every comment, and the worst case counts each request byte as a token and the request
 // once per model pass. At GPT-6 Sol's OpenRouter prices read on 2026-10-20 ($2.50 per million prompt tokens at the
 // cache-write price, $10 per million output tokens), the benchmark thread's comments add 498 request bytes each,
-// so $2 fits a thread of about 750 such comments and $1 about 350.
-const DEFAULT_QUESTION_CAP_USD = 2;
+// so $1 fits a thread of about 350 such comments and $2 about 750.
+const DEFAULT_QUESTION_CAP_USD = 1;
 
 // A cap box's stored value. The page writes only positive numbers, so a stored value that is not one is reported
 // and replaced by the default.
@@ -5051,6 +5053,7 @@ function renderThreadInfo(thread, snapshot, stored, currentCommentCount, current
 // The results describe one thread; loading any thread, including a refresh of the same one, removes them.
 function clearResults() {
     elements.results.replaceChildren();
+    elements.resultsEnd.replaceChildren();
     elements.warnings.hidden = true;
     displayedSelectionKey = null;
 }
@@ -5774,7 +5777,9 @@ function renderResults(result, comments) {
         narrative.prepend(makeElement('p', { text: 'Complete text processed · ' + voices + ' textual voices · ' + result.comments.length + ' counted passages. Counts reflect the primary speaker and directly attributed voices in this selected text, not a survey.' }));
         caveats.appendChild(makeElement('p', { text: 'Attribution and semantic reviews are model judgments. Unresolved speech and reported paraphrases are shown separately and do not count as direct testimony. Quotation authenticity and factual claims have not been checked.' }));
     }
-    elements.results.replaceChildren(narrative, ...groupBlocks, caveats, comparisons, ...(renderedArticle ? [renderArticleSource(renderedArticle)] : []));
+    // The question form sits between the discussion and Scope and caveats, so a question follows the summary it asks about.
+    elements.results.replaceChildren(narrative, ...groupBlocks);
+    elements.resultsEnd.replaceChildren(caveats, comparisons, ...(renderedArticle ? [renderArticleSource(renderedArticle)] : []));
     renderUnverifiedAxes(result.unverifiedAxes || [], commentsById);
     elements.unverifiedAxes.open = false;
     comparisons.appendChild(elements.unverifiedAxes);
