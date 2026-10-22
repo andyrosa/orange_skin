@@ -12,7 +12,7 @@ const { HTML_PATH, CORE_SCRIPT_PATTERN, readPage, blockText } = require('./load_
 const WRITE_FLAG = '--write';
 
 // The only hosts the page connects to; the browser refuses every other connection.
-const CONNECT_HOSTS = ['https://openrouter.ai', 'https://hn.algolia.com', 'https://hacker-news.firebaseio.com'];
+const CONNECT_HOSTS = ['https://openrouter.ai', 'https://hn.algolia.com', 'https://hacker-news.firebaseio.com', 'https://api.keenable.ai'];
 
 // The inline blocks the policy names, each hashed over the text between its open and close tags,
 // which is what the browser hashes.
