@@ -446,10 +446,11 @@ function gradeStancesAgainst(run, reference) {
 }
 
 // What a whole run shows the reader, which needs no reference: its scored axes, the axes left out below the
-// floor, the counted stances, and the rows outside "too few", the ones with enough people behind a count.
+// floor, the counted stances, and the rows the page does not mark "few people", the ones with enough people behind a
+// count. Runs recorded before 2026-10-22 counted the rows outside "too few", a group decided by a 95% interval.
 function wholeRunShape(result) {
     return { axes: result.axes.length, axesBelowFloor: result.stats.axesBelowFloor, stances: result.stats.agreedStances,
-        rows: result.rows.length, rowsWithEnoughPeople: result.rows.filter(row => row.group !== 'tooFew').length };
+        rows: result.rows.length, rowsWithEnoughPeople: result.rows.filter(row => !core.hasFewPeople(row)).length };
 }
 
 // A whole run graded against a reference, with its shape.
@@ -486,9 +487,9 @@ const MATCH_SCHEMA = { name: 'match_candidates', schema: { type: 'object', addit
 
 const FAITHFUL_SYSTEM_PROMPT = `You check a summary of a Hacker News discussion against the evidence it was written from. The submission title is: "{title}".
 
-The evidence lists axes. Each axis has two rival statements, A and B, a group computed from its counts (consensus, split, leaning, or tooFew), the number of people on each side, and comment excerpts. The summary cites one side of one axis with a marker such as [[axis:3:A]], placed immediately after the words that state that side. The application replaces each marker with the number of people on that side.
+The evidence lists axes. Each axis has two rival statements, A and B, labels the application computed from its counts (a group: unanimous, agrees, leans, split, or neither; the majority side; the sides anyone took; and whether few people took a side), and comment excerpts. The summary cites one side of one axis with a marker such as [[axis:3:A]], placed immediately after the words that state that side. The application replaces each marker with the number of people on that side.
 
-For each marker in the summary, decide whether the words it follows are faithful. They are faithful when all of these hold: they state the marked side of the marked axis, as the axis's statement and excerpts support it; they add no claim that the evidence does not support; and they present the weight of the side consistently with the counts and the group (a majority as a majority, a minority as a minority, a near-even division as a disagreement).
+For each marker in the summary, decide whether the words it follows are faithful. They are faithful when all of these hold: they state the marked side of the marked axis, as the axis's statement and excerpts support it; they add no claim that the evidence does not support; and they present the weight of the side consistently with the labels (a majority as a majority, a minority as a minority, a split as a disagreement, and an axis with few people as tentative).
 
 Return exactly one entry per marker, in the order the markers appear, as JSON matching the schema and nothing else.`;
 const FAITHFUL_SCHEMA = { name: 'check_summary', schema: { type: 'object', additionalProperties: false, required: ['markers'],

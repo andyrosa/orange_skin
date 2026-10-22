@@ -10,8 +10,8 @@
 // its own call cache, so its requests are answered anew. A call made by scripts/run_node.js has no recorded
 // time, so a run replayed from such a cache has no latency, and the latency figures cover the repeats only.
 // For each run:
-//   axes, rowsWithEnoughPeople  the scored axes, and the rows outside "too few", which have enough people
-//                               behind their counts
+//   axes, rowsWithEnoughPeople  the scored axes, and the rows not marked "few people", which have enough
+//                               people behind their counts (before 2026-10-22: the rows outside "too few")
 //   stances                     the stances both scoring passes gave
 //   agreement, precision, recall  on the silver thread only: the run graded against silver as
 //                               scripts/silver_lib.js grades a whole run (gradeWholeRun)
@@ -49,7 +49,7 @@ const CONFIGURATIONS = Object.freeze({
 function runLine(label, run) {
     const silverPart = run.agreement === null ? '' : `; F1 against silver ${lib.percent(run.agreement)} (precision ${lib.percent(run.precision)}, recall ${lib.percent(run.recall)})`;
     const latencyPart = run.seconds === null ? 'latency not recorded' : `${run.seconds} s`;
-    return `${label}: ${run.axes} axes, ${run.rowsWithEnoughPeople} outside "too few", ${run.stances} stances${silverPart}; $${run.usd.toFixed(4)}, ${latencyPart}, ${run.calls} calls (${run.cachedCalls} replayed)`;
+    return `${label}: ${run.axes} axes, ${run.rowsWithEnoughPeople} with enough people, ${run.stances} stances${silverPart}; $${run.usd.toFixed(4)}, ${latencyPart}, ${run.calls} calls (${run.cachedCalls} replayed)`;
 }
 
 async function runOnce({ keys, thread, silver, modelCallChat, concurrency, label }) {

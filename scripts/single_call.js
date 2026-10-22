@@ -82,7 +82,7 @@ function spent(calls) {
 function runLine(label, run) {
     const figures = run.failed
         ? `FAILED: ${run.failed}`
-        : `${run.axes} axes, ${run.rowsWithEnoughPeople} outside "too few", ${run.stances} stances; F1 against silver ${lib.percent(run.agreement)} `
+        : `${run.axes} axes, ${run.rowsWithEnoughPeople} with enough people, ${run.stances} stances; F1 against silver ${lib.percent(run.agreement)} `
             + `(precision ${lib.percent(run.precision)}, recall ${lib.percent(run.recall)}), ${run.pairedAxes} of ${run.referenceAxes} silver axes paired`;
     return `${label}: ${figures}; $${run.usd.toFixed(4)}, ${run.seconds} s, ${run.calls} calls`;
 }
