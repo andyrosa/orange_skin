@@ -40,7 +40,7 @@ async function requestSingleCall({ choice, thread, modelCallChat }) {
     const commentsById = core.indexCommentsById(thread.comments);
     const call = {
         stage: SINGLE_CALL_STAGE, model: choice.model, sampling: choice.sampling, reasoning: choice.reasoning, maxTokens: choice.maxTokens,
-        messages: core.buildSingleCallMessages(thread.title, thread.comments, commentsById, core.DEFAULT_CONFIG.parentSnippetChars),
+        messages: core.buildSingleCallMessages(thread.title, thread.postText, thread.comments, commentsById, core.DEFAULT_CONFIG.parentSnippetChars),
         schema: core.SINGLE_CALL_SCHEMA,
     };
     return core.parseSingleCallResponse((await modelCallChat(call)).json, new Set(thread.comments.map(comment => comment.id)));
