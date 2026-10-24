@@ -3,19 +3,67 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-M7kLdaxRYn/HOel4uxxaBHMANOwBrnd8wr07TOhuB3o=' 'sha256-I0ExNShJM4pb6L/rG0fl7fuxcyvcz/ivTHfTLHzI4WQ='; style-src 'sha256-VeggIrb0AGHBG4tDlKdc2D3IcWSw1DeeSzuqWkcpjRs='; connect-src https://openrouter.ai https://hn.algolia.com https://hacker-news.firebaseio.com https://api.keenable.ai; img-src data:; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-M7kLdaxRYn/HOel4uxxaBHMANOwBrnd8wr07TOhuB3o=' 'sha256-dyTfHTcF+yDLCJz6kbNYdoDQewyu+XrE92VfbwXmzE4='; style-src 'sha256-ALnHgII94Px+CXYL4UyXlxvJ2WLvAjO9UPij7MkmpMw='; connect-src https://openrouter.ai https://hn.algolia.com https://hacker-news.firebaseio.com https://api.keenable.ai; img-src data:; base-uri 'none'; form-action 'none'">
 <title>Orange Split - For and Against on Hacker News</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 32 32%27%3E%3Crect width=%2732%27 height=%2732%27 fill=%27%23ff6600%27/%3E%3Ctext x=%2716%27 y=%2721%27 font-family=%27sans-serif%27 font-weight=%27bold%27 font-size=%2714%27 text-anchor=%27middle%27 fill=%27white%27%3EOS%3C/text%3E%3C/svg%3E">
 <style>
 [hidden] { display: none !important; }
+/* 1990 Macintosh look: a black-and-white System 6 window on a dithered gray desktop. Every gray in the chrome is
+   a 1-pixel dither or a dotted line, every shadow is a hard 1-pixel black offset, and a press or a highlight
+   inverts black and white. Content colors come from the Macintosh 8-bit system palette, which contains the
+   6x6x6 color cube that became the web-safe palette. Chicago and Geneva are not web fonts, and the
+   Content-Security-Policy loads no font, so each stack names them first and falls back to Verdana, whose wide
+   letters are close to Geneva's. */
+:root {
+    --ink: #000;
+    --paper: #fff;
+    --muted: #666;
+    --blue: #0000cc;
+    --orange: #cc3300;
+    --purple: #660099;
+    --red: #cc0000;
+    --green: #006600;
+    --brown: #993300;
+    --dither: repeating-conic-gradient(#000 0 25%, #fff 0 50%) 0 0 / 2px 2px;
+    --font-chrome: Chicago, ChicagoFLF, Charcoal, Verdana, sans-serif;
+    --font-body: Geneva, Verdana, sans-serif;
+    --window-pad: 12px;
+}
+html { min-height: 100%; background: var(--dither); }
+::selection { background: var(--ink); color: var(--paper); }
+/* The page is one window: a white body with a black frame and a hard shadow, and the h1 as its title bar. */
+body { margin: 12px; padding: 0 var(--window-pad) var(--window-pad); border: 1px solid var(--ink); box-shadow: 1px 1px 0 var(--ink); background: var(--paper); color: var(--ink); font: 13px/1.4 var(--font-body); }
+/* The title bar: six 1-pixel stripes on each side of the title. */
+h1 { display: flex; align-items: center; gap: 8px; margin: 0 calc(0px - var(--window-pad)) var(--window-pad); padding: 3px 2px; border-bottom: 1px solid var(--ink); font: bold 12px/14px var(--font-chrome); }
+h1::before, h1::after { content: ""; flex: 1; height: 11px; background: repeating-linear-gradient(var(--ink) 0 1px, var(--paper) 1px 2px); }
+h2 { font: bold 14px/1.3 var(--font-chrome); }
+h3 { font-family: var(--font-chrome); }
+a { color: var(--blue); }
+/* Push buttons: rounded rectangles that invert while pressed and gray out while disabled. :where gives these
+   rules no specificity, so a rule for a particular button, such as a link-style one, overrides them. */
+:where(button) { padding: 1px 10px; border: 1px solid var(--ink); border-radius: 8px; background: var(--paper); color: var(--ink); font: bold 12px/16px var(--font-chrome); cursor: pointer; }
+:where(button:active:not(:disabled)) { background: var(--ink); color: var(--paper); }
+:where(button:disabled) { border-color: #999; color: #999; cursor: default; }
+:where(input[type="text"], input[type="password"], input[type="number"], textarea) { padding: 2px 4px; border: 1px solid var(--ink); border-radius: 0; background: var(--paper); color: var(--ink); font: 13px var(--font-body); }
+:where(button, input, select, textarea, summary, a):focus-visible { outline: 2px solid var(--ink); outline-offset: 1px; }
+/* A checked box shows an X, as a Macintosh check box did. */
+input[type="checkbox"] { appearance: none; width: 12px; height: 12px; margin: 0 4px 0 0; border: 1px solid var(--ink); background-color: var(--paper); vertical-align: -2px; }
+input[type="checkbox"]:checked { background-image: linear-gradient(45deg, transparent calc(50% - 0.75px), var(--ink) calc(50% - 0.75px) calc(50% + 0.75px), transparent calc(50% + 0.75px)), linear-gradient(-45deg, transparent calc(50% - 0.75px), var(--ink) calc(50% - 0.75px) calc(50% + 0.75px), transparent calc(50% + 0.75px)); }
+/* A pop-up menu: a framed box with a hard shadow and a down triangle. */
+select { appearance: none; padding: 1px 20px 1px 6px; border: 1px solid var(--ink); border-radius: 0; box-shadow: 1px 1px 0 var(--ink); background: var(--paper) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='9' height='5'%3E%3Cpath d='M0 0h9L4.5 5z'/%3E%3C/svg%3E") no-repeat right 6px center; color: var(--ink); font: bold 12px/16px var(--font-chrome); }
+/* Scroll bars: a dithered track and a white thumb. */
+::-webkit-scrollbar { width: 16px; height: 16px; }
+::-webkit-scrollbar-track { background: var(--dither); }
+::-webkit-scrollbar-track:vertical { border-left: 1px solid var(--ink); }
+::-webkit-scrollbar-track:horizontal { border-top: 1px solid var(--ink); }
+::-webkit-scrollbar-thumb { border: 1px solid var(--ink); background: var(--paper); }
+::-webkit-scrollbar-corner { background: var(--paper); }
 #hn-controls { display: contents; }
 #article-input { max-width: 70rem; }
 #article-title { width: min(100%, 40rem); box-sizing: border-box; }
 #article-text { display: block; width: 100%; min-height: 14rem; box-sizing: border-box; font: inherit; margin: 0.4rem 0; }
 #original-article pre { white-space: pre-wrap; overflow-wrap: anywhere; max-height: 32rem; overflow: auto; font: inherit; line-height: 1.5; }
-#original-article mark { background: #fff1a8; }
-body { font-family: system-ui, sans-serif; margin: 0.5rem 1rem; }
-h1 { font-size: 1.4rem; margin: 0 0 0.5rem; }
+#original-article mark { background: #ffff99; }
 .visually-hidden { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
 label { display: inline-block; margin-right: 1rem; }
 /* 100cqi is the width of #key-entry; 1rem is the key label's right margin. A percentage width would resolve
@@ -28,23 +76,26 @@ input[type="number"] { width: 5em; }
 #min-comments::-webkit-inner-spin-button, #min-comments::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
 .min-comments-control { display: inline-flex; align-items: stretch; }
 .min-comments-arrows { display: flex; flex-direction: column; }
-.min-comments-arrows button { margin: 0; padding: 0 0.3em; font-size: 10px; line-height: 1; flex: 1; }
+.min-comments-arrows button { margin: 0; padding: 0 0.3em; border-radius: 0; font-size: 8px; line-height: 1; flex: 1; }
+.min-comments-arrows button + button { border-top: 0; }
 .row { margin: 1em 0; }
 .thread-controls { position: relative; display: flex; align-items: center; flex-wrap: wrap; gap: 0.4rem; }
 .thread-controls label, .thread-controls .story-scope { margin-right: 0; }
 .story-scope { display: inline-flex; margin-right: 1rem; vertical-align: middle; }
-.story-scope button { margin: 0; border: 1px solid #777; background: #fff; }
-.story-scope button:first-child { border-radius: 3px 0 0 3px; }
-.story-scope button:last-child { border-left: 0; border-radius: 0 3px 3px 0; }
-.story-scope button[aria-pressed="true"] { background: #333; color: #fff; }
+.story-scope button { margin: 0; border-radius: 0; }
+.story-scope button:first-child { border-radius: 8px 0 0 8px; }
+.story-scope button + button { border-left: 0; }
+.story-scope button:last-child { border-radius: 0 8px 8px 0; }
+.story-scope button[aria-pressed="true"] { background: var(--ink); color: var(--paper); }
 #thread-picker { display: inline-block; vertical-align: middle; }
 /* The list spans .thread-controls, whose width excludes the page's vertical scrollbar; a 100vw width
    includes it and put the list's right edge under the scrollbar. top is left auto, so the list starts
    just below the Thread box. */
-#story-list { position: absolute; left: 0; right: 0; z-index: 1; margin: 0; padding: 0; list-style: none; max-height: calc(100vh - 7rem); overflow: auto; background: #fff; border: 1px solid #999; box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2); }
+#story-list { position: absolute; left: 0; right: 0; z-index: 1; margin: 0; padding: 0; list-style: none; max-height: calc(100vh - 7rem); overflow: auto; background: var(--paper); border: 1px solid var(--ink); box-shadow: 1px 1px 0 var(--ink); }
 #story-list li { cursor: pointer; }
-#story-list li.header { color: #666; font-size: 0.9em; cursor: default; background: #eee; }
-#story-list li.active { background: #cde; }
+#story-list li.header { border-bottom: 1px solid var(--ink); background: var(--paper); color: var(--ink); font: bold 12px/16px var(--font-chrome); cursor: default; }
+#story-list li.active { background: var(--ink); color: var(--paper); }
+#story-list li.active .story-detail, #story-list li.active .story-status, #story-list li.active .new { color: var(--paper); }
 #story-list li.preprocessed .story-title { font-weight: bold; }
 .story-option { display: flex; align-items: stretch; padding: 0 0 0 0.5rem; white-space: nowrap; }
 .story-option.header { display: block; padding: 0.35rem 0.5rem; }
@@ -52,81 +103,90 @@ input[type="number"] { width: 5em; }
 .story-option.header button { margin-left: 0.5rem; }
 .story-text { flex: 1 1 auto; display: flex; align-items: center; gap: 0.35rem; min-width: 0; padding: 0.35rem 0; }
 .story-title { flex: 0 1 auto; min-width: 4rem; overflow: hidden; text-overflow: ellipsis; }
-.story-hn { flex: 0 0 auto; display: flex; align-items: center; margin-left: 0.5rem; padding: 0 0.8rem; border-left: 1px solid #ddd; background: #ff6600; color: #fff; font-weight: bold; font-size: 0.85em; text-decoration: none; cursor: alias; }
+.story-hn { flex: 0 0 auto; display: flex; align-items: center; margin-left: 0.5rem; padding: 0 0.8rem; border-left: 1px solid var(--ink); background: #ff6600; color: #fff; font-weight: bold; font-size: 0.85em; text-decoration: none; cursor: alias; }
 .story-hn:hover { background: #e65c00; }
-.story-detail { flex: 0 0 auto; color: #666; font-size: 12px; }
-.story-detail .new { color: #8a5400; font-weight: bold; }
-.story-status { color: #666; }
-.story-status.ready { color: #176b35; font-weight: bold; }
-.story-status.partial { color: #24588f; }
+.story-detail { flex: 0 0 auto; color: var(--muted); font-size: 12px; }
+.story-detail .new { color: var(--brown); font-weight: bold; }
+.story-status { color: var(--muted); }
+.story-status.ready { color: var(--green); font-weight: bold; }
+.story-status.partial { color: var(--blue); }
 @media (max-width: 48rem) {
-    #story-list { left: calc(2px - 1rem); right: calc(2px - 1rem); }
+    body { margin: 6px; }
+    :root { --window-pad: 10px; }
+    #story-list { left: calc(0px - var(--window-pad)); right: calc(0px - var(--window-pad)); }
     .story-option { white-space: normal; overflow-wrap: anywhere; }
     .story-text { flex-direction: column; align-items: stretch; gap: 0.15rem; }
     .story-title { min-width: 0; }
     .story-detail { line-height: 1.4; }
 }
-#cached-results-toggle { border: 0; background: none; color: #0645ad; cursor: pointer; font: inherit; margin: 0; padding: 0; text-decoration: underline; }
-#cached-results-toggle:disabled { color: #666; cursor: default; text-decoration: none; }
+#cached-results-toggle { border: 0; background: none; color: var(--blue); cursor: pointer; font: inherit; margin: 0; padding: 0; text-decoration: underline; }
+#cached-results-toggle:disabled { color: var(--muted); cursor: default; text-decoration: none; }
 #cached-results-list { margin: -0.5rem 0 1rem; padding-left: 1.5rem; }
 #cached-results-list li { margin: 0.25rem 0; }
-#cached-results-list button { border: 0; background: none; color: #0645ad; cursor: pointer; font: inherit; margin: 0; padding: 0; text-align: left; text-decoration: underline; }
-#cached-results-list button:disabled { color: #666; cursor: default; }
+#cached-results-list button { border: 0; background: none; color: var(--blue); cursor: pointer; font: inherit; margin: 0; padding: 0; text-align: left; text-decoration: underline; }
+#cached-results-list button:disabled { color: var(--muted); cursor: default; }
 input[type="range"] { width: 8rem; vertical-align: middle; }
-#share { accent-color: #b91c1c; }
-#share.full-share { accent-color: #15803d; }
+/* The share slider: a dithered track and a square thumb, red below 100% and green at 100%. */
+#share { --thumb: var(--red); appearance: none; height: 16px; background: transparent; }
+#share.full-share { --thumb: var(--green); }
+#share::-webkit-slider-runnable-track { height: 6px; border: 1px solid var(--ink); background: var(--dither); }
+#share::-webkit-slider-thumb { appearance: none; width: 10px; height: 14px; margin-top: -5px; border: 1px solid var(--ink); border-radius: 0; background: var(--thumb); }
+#share::-moz-range-track { height: 6px; border: 1px solid var(--ink); background: var(--dither); }
+#share::-moz-range-thumb { width: 10px; height: 14px; border: 1px solid var(--ink); border-radius: 0; background: var(--thumb); }
 .model-choices { position: relative; display: flex; flex-wrap: wrap; gap: 0.4rem; margin: 1em 0; }
 .model-choice { display: flex; align-items: center; gap: 0.4rem; min-width: 0; max-width: 100%; }
 .model-choice > label { margin: 0; font-size: 0.85rem; font-weight: 600; white-space: nowrap; }
 .model-grid { display: grid; align-items: stretch; }
 .picker-grid { grid-template-columns: minmax(11rem, 2fr) minmax(7rem, 0.9fr) minmax(8rem, 1fr) minmax(8rem, 1fr) minmax(8rem, 1fr); }
-.model-grid-header { position: sticky; top: 0; padding: 0.55rem 2.2rem 0.55rem 0.75rem; background: #eee; color: #555; font-size: 11px; line-height: 1.15; }
-.model-comparison-method { margin: 0; padding: 0.6rem 0.75rem; color: #555; font-size: 12px; line-height: 1.4; }
+.model-grid-header { position: sticky; top: 0; padding: 0.55rem 2.2rem 0.55rem 0.75rem; border-bottom: 1px solid var(--ink); background: var(--paper); color: var(--ink); font-size: 11px; line-height: 1.15; }
+.model-comparison-method { margin: 0; padding: 0.6rem 0.75rem; color: var(--muted); font-size: 12px; line-height: 1.4; }
 .model-cell { display: flex; align-items: center; min-width: 0; padding: 0 0.55rem; }
 .model-cell:first-child { padding-left: 0; }
-.model-cell + .model-cell { border-left: 1px solid #ddd; }
+.model-cell + .model-cell { border-left: 1px dotted var(--ink); }
 .model-grid .metric { text-align: right; font-variant-numeric: tabular-nums; justify-content: flex-end; }
-.model-trigger { position: relative; max-width: 100%; margin: 0; padding: 0.5rem 2.2rem 0.5rem 0.75rem; border: 1px solid #c5ced8; border-radius: 6px; background: #fafcfe; color: #234c74; font: 600 14px/20px system-ui, sans-serif; text-align: left; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; cursor: pointer; }
-.model-trigger:hover, .model-trigger[aria-expanded="true"] { background: #eaf3fc; border-color: #477cac; }
-.model-trigger::after { content: "v"; position: absolute; right: 0.75rem; top: 50%; transform: translateY(-50%); }
-.model-trigger:focus { outline: 2px solid #2b6cb0; outline-offset: 1px; }
-.model-options { position: absolute; z-index: 3; top: calc(100% + 0.3rem); left: 0; width: 100%; max-width: 56rem; box-sizing: border-box; max-height: min(48rem, 75vh); overflow: auto; border: 1px solid #777; background: #fff; box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2); }
+.model-trigger { position: relative; max-width: 100%; margin: 0; padding: 2px 2.2rem 2px 0.5rem; border: 1px solid var(--ink); border-radius: 0; box-shadow: 1px 1px 0 var(--ink); background: var(--paper); color: var(--ink); font: bold 12px/18px var(--font-chrome); text-align: left; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; cursor: pointer; }
+.model-trigger[aria-expanded="true"] { background: var(--ink); color: var(--paper); }
+.model-trigger::after { content: "\25BC"; position: absolute; right: 0.6rem; font-size: 9px; top: 50%; transform: translateY(-50%); }
+.model-trigger:focus { outline: 2px solid var(--ink); outline-offset: 2px; }
+.model-options { position: absolute; z-index: 3; top: calc(100% + 0.3rem); left: 0; width: 100%; max-width: 56rem; box-sizing: border-box; max-height: min(48rem, 75vh); overflow: auto; border: 1px solid var(--ink); background: var(--paper); box-shadow: 1px 1px 0 var(--ink); }
 .model-options .model-grid { min-width: 42rem; box-sizing: border-box; }
-.model-option { width: 100%; margin: 0; padding: 0 2.2rem 0 0.75rem; border: 0; border-top: 1px solid #eee; border-radius: 0; background: #fff; color: #111; text-align: left; }
+.model-option { width: 100%; margin: 0; padding: 0 2.2rem 0 0.75rem; border: 0; border-radius: 0; background: var(--paper); color: var(--ink); font: 12px/1.3 var(--font-body); text-align: left; }
 .model-option .model-cell { padding-top: 0.55rem; padding-bottom: 0.55rem; }
-.model-option:hover, .model-option:focus { background: #e8f2fb; outline: none; }
-.model-option:focus-visible { outline: 2px solid #2b6cb0; outline-offset: -2px; }
-.model-option[aria-selected="true"] { background: #d8eaf8; font-weight: 600; }
+.model-option:hover, .model-option:focus { background: var(--ink); color: var(--paper); outline: none; }
+/* A metric cell keeps its own color under the highlight, so its text stays black. */
+.model-option:hover .model-cell[style], .model-option:focus .model-cell[style] { color: var(--ink); }
+.model-option:focus-visible { outline: 1px dotted var(--paper); outline-offset: -3px; }
+.model-option[aria-selected="true"] { font-weight: bold; }
 button { margin-right: 0.5rem; }
-#run-hint { color: #666; }
+#run-hint { color: var(--muted); }
 #status { margin: 0.5rem 0; white-space: pre-wrap; }
-#status.error { color: #b00020; }
+#status.error { color: var(--red); }
 #article-summary { margin-top: 1rem; max-width: 70rem; line-height: 1.5; }
 #article-summary-cap { width: 5em; }
-.article-summary-meta, .question-answer-meta { color: #666; font-size: 14px; font-weight: normal; }
+.article-summary-meta, .question-answer-meta { color: var(--muted); font-size: 14px; font-weight: normal; }
 #question { margin-top: 1rem; max-width: 70rem; }
 #new-conversation-row { display: flex; justify-content: flex-end; }
-#new-conversation { margin: 0.5rem 0 0; padding: 0; border: 0; background: none; color: #0645ad; cursor: pointer; font: inherit; font-size: 14px; text-decoration: underline; }
+#new-conversation { margin: 0.5rem 0 0; padding: 0; border: 0; background: none; color: var(--blue); cursor: pointer; font: inherit; font-size: 14px; text-decoration: underline; }
 #question-turns { display: flex; flex-direction: column; gap: 0.5rem; margin-top: 0.5rem; line-height: 1.5; }
-.question-bubble { align-self: flex-end; max-width: 80%; padding: 0.35rem 0.7rem; border-radius: 12px 12px 2px 12px; background: #e6f0fa; white-space: pre-wrap; overflow-wrap: anywhere; }
-.question-sent { align-self: flex-end; margin-top: -0.35rem; color: #666; font-size: 12px; }
-.answer-bubble { align-self: flex-start; max-width: 92%; padding: 0.35rem 0.7rem; border-radius: 12px 12px 12px 2px; background: #f3f3f3; overflow-wrap: anywhere; }
+.question-bubble { align-self: flex-end; max-width: 80%; padding: 0.35rem 0.7rem; border-radius: 12px 12px 2px 12px; background: var(--ink); color: var(--paper); white-space: pre-wrap; overflow-wrap: anywhere; }
+.question-sent { align-self: flex-end; margin-top: -0.35rem; color: var(--muted); font-size: 12px; }
+.answer-bubble { align-self: flex-start; max-width: 92%; padding: 0.35rem 0.7rem; border: 1px solid var(--ink); border-radius: 12px 12px 12px 2px; box-shadow: 1px 1px 0 var(--ink); background: var(--paper); overflow-wrap: anywhere; }
 .question-answer-text { margin: 0; white-space: pre-wrap; }
 .answer-foot { display: flex; flex-wrap: wrap; align-items: baseline; gap: 0.2rem 0.75rem; margin-top: 0.2rem; }
 .answer-bubble .question-answer-meta { font-size: 12px; }
-.question-delete { margin: 0; padding: 0; border: 0; background: none; color: #0645ad; cursor: pointer; font: inherit; font-size: 12px; text-decoration: underline; }
-#question-storage-error { margin: 0.5rem 0 0; color: #b00020; font-size: 14px; }
-.question-deleted { align-self: center; color: #666; font-size: 12px; font-style: italic; }
+.question-delete { margin: 0; padding: 0; border: 0; background: none; color: var(--blue); cursor: pointer; font: inherit; font-size: 12px; text-decoration: underline; }
+#question-storage-error { margin: 0.5rem 0 0; color: var(--red); font-size: 14px; }
+.question-deleted { align-self: center; color: var(--muted); font-size: 12px; font-style: italic; }
 #article-link { display: block; overflow-wrap: anywhere; }
 #post-text { margin-top: 1rem; max-width: 70rem; line-height: 1.5; }
 #post-text p { white-space: pre-wrap; overflow-wrap: anywhere; }
 #pasted-page-text { display: block; width: 100%; box-sizing: border-box; margin: 0.4rem 0; font: inherit; }
-#paste-page-error { margin: 0 0 0.4rem; color: #b00020; font-size: 14px; }
-.composer { margin-top: 0.75rem; padding: 0.4rem 0.5rem; border: 1px solid #b9c0ca; border-radius: 10px; }
-.composer:focus-within { outline: 2px solid #2b6cb0; outline-offset: 1px; }
+#paste-page-error { margin: 0 0 0.4rem; color: var(--red); font-size: 14px; }
+.composer { margin-top: 0.75rem; padding: 0.4rem 0.5rem; border: 1px solid var(--ink); background: var(--paper); }
+.composer:focus-within { outline: 2px solid var(--ink); outline-offset: 1px; }
 #question-text { display: block; width: 100%; box-sizing: border-box; padding: 0.15rem 0.2rem; border: 0; font: inherit; resize: vertical; }
 #question-text:focus { outline: none; }
-.composer-bar { display: flex; flex-wrap: wrap; align-items: center; gap: 0.4rem 0.75rem; margin-top: 0.3rem; color: #666; font-size: 14px; }
+.composer-bar { display: flex; flex-wrap: wrap; align-items: center; gap: 0.4rem 0.75rem; margin-top: 0.3rem; color: var(--muted); font-size: 14px; }
 .composer-bar label { display: inline-flex; align-items: center; gap: 0.3rem; margin-right: 0; }
 #ask-question { margin: 0 0 0 auto; }
 #results, #results-end { margin-top: 1rem; }
@@ -134,50 +194,50 @@ button { margin-right: 0.5rem; }
 .group-toggle { margin: 0; padding: 0; border: 0; background: none; color: inherit; font: inherit; text-align: left; cursor: pointer; }
 .group-toggle::before { content: "\25B8\00A0"; }
 .group-toggle[aria-expanded="true"]::before { content: "\25BE\00A0"; }
-.group-toggle:focus-visible { outline: 2px solid #2b6cb0; outline-offset: 2px; }
-.narrative-counts { white-space: nowrap; font-size: 0.85em; color: #666; }
+.group-toggle:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+.narrative-counts { white-space: nowrap; font-size: 0.85em; color: var(--muted); }
 .narrative-counts .count-toggle { font: inherit; margin: 0; padding: 0 0.1em; border: 0; background: none; color: inherit; cursor: pointer; text-decoration: underline; text-underline-offset: 0.15em; }
-.narrative-counts .count-toggle:focus-visible { outline: 2px solid #2b6cb0; outline-offset: 2px; }
-.narrative .evidence { margin: 0.5rem 0; padding: 0.5rem 1rem; border-left: 3px solid #ddd; max-height: 28rem; overflow: auto; overflow-anchor: none; }
+.narrative-counts .count-toggle:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+.narrative .evidence { margin: 0.5rem 0; padding: 0.5rem 1rem; border-left: 1px solid var(--ink); max-height: 28rem; overflow: auto; overflow-anchor: none; }
 .narrative .evidence h3 { font-size: 14px; margin: 0 0 0.5rem; }
 .narrative .evidence-comment { margin: 0.75rem 0; }
 .narrative .evidence-comment header { font-size: 12px; }
 .narrative .evidence-comment p { font-size: 13px; white-space: pre-wrap; margin: 0.15rem 0; }
-.axis { padding: 0.6rem 0; border-bottom: 1px solid #e4e4e4; }
+.axis { padding: 0.6rem 0; border-bottom: 1px dotted var(--ink); }
 .axis .statement { line-height: 1.15; margin: 0.1rem 0; }
-.axis .statement.side1 { color: #2b6cb0; font-size: 18px; }
-.axis .statement.side2 { color: #c05621; font-size: 14px; }
+.axis .statement.side1 { color: var(--blue); font-size: 18px; }
+.axis .statement.side2 { color: var(--orange); font-size: 14px; }
 .axis .proportion-row { display: flex; align-items: center; margin: 0.35rem 0; }
-.axis .count { font-size: 11px; color: #666; font-variant-numeric: tabular-nums; }
+.axis .count { font-size: 11px; color: var(--muted); font-variant-numeric: tabular-nums; }
 .axis .count.side1 { margin-right: 0.4rem; }
 .axis .count.side2 { margin-left: 0.4rem; }
 .axis .middle-count { margin-left: 0.3rem; }
 .axis .count-toggle { border: 0; background: none; cursor: pointer; padding: 0; text-decoration: underline; }
-.axis .count-toggle.side1 { color: #2b6cb0; }
-.axis .count-toggle.side2 { color: #c05621; }
-.axis .count-toggle.unverified { color: #b00020; margin-left: 0.4rem; }
-.axis .proportion { display: flex; height: 6px; width: 24rem; background: #eee; }
+.axis .count-toggle.side1 { color: var(--blue); }
+.axis .count-toggle.side2 { color: var(--orange); }
+.axis .count-toggle.unverified { color: var(--red); margin-left: 0.4rem; }
+.axis .proportion { display: flex; height: 6px; width: 24rem; border: 1px solid var(--ink); background: var(--paper); }
 .axis .proportion span { display: block; height: 100%; flex: var(--share); }
-.axis .proportion .side1 { background: #2b6cb0; }
-.axis .proportion .mid { background: #cfcfcf; }
-.axis .proportion .contradiction { background: #805ad5; }
-.axis .proportion .side2 { background: #c05621; }
-.axis .evidence { margin: 0.5rem 0 0.25rem; padding-left: 1rem; border-left: 3px solid #ddd; }
+.axis .proportion .side1 { background: var(--blue); }
+.axis .proportion .mid { background: var(--dither); }
+.axis .proportion .contradiction { background: var(--purple); }
+.axis .proportion .side2 { background: var(--orange); }
+.axis .evidence { margin: 0.5rem 0 0.25rem; padding-left: 1rem; border-left: 1px solid var(--ink); }
 .axis .evidence-group { margin: 0.6rem 0; }
 .axis .evidence-group h3 { font-size: 13px; margin: 0 0 0.3rem; }
-.axis .evidence-group.side1 h3 { color: #2b6cb0; }
-.axis .evidence-group.mid h3 { color: #666; }
-.axis .evidence-group.side2 h3 { color: #c05621; }
-.axis .evidence-group.unverified h3 { color: #b00020; }
+.axis .evidence-group.side1 h3 { color: var(--blue); }
+.axis .evidence-group.mid h3 { color: var(--muted); }
+.axis .evidence-group.side2 h3 { color: var(--orange); }
+.axis .evidence-group.unverified h3 { color: var(--red); }
 .axis .evidence-comment { margin: 0.5rem 0; max-width: 70rem; }
-.axis .evidence-comment header { font-size: 11px; color: #666; }
+.axis .evidence-comment header { font-size: 11px; color: var(--muted); }
 .axis .evidence-comment p { font-size: 13px; line-height: 1.35; margin: 0.15rem 0; white-space: pre-wrap; }
 #warnings ul { margin: 0; padding-left: 1.5rem; }
-#unverified-axes { margin: 1rem 0; color: #666; }
+#unverified-axes { margin: 1rem 0; color: var(--muted); }
 #unverified-axes > p { font-size: 13px; margin: 0.5rem 0; }
-.unverified-axis { max-width: 70rem; margin: 0.75rem 0; padding-left: 0.75rem; border-left: 3px solid #b00020; }
+.unverified-axis { max-width: 70rem; margin: 0.75rem 0; padding-left: 0.75rem; border-left: 3px solid var(--red); }
 .unverified-axis p { margin: 0.15rem 0; }
-.unverified-axis .label { font-size: 11px; color: #b00020; }
+.unverified-axis .label { font-size: 11px; color: var(--red); }
 .unverified-axis ul { margin: 0.3rem 0; padding-left: 1.5rem; font-size: 12px; }
 </style>
 </head>
@@ -4868,7 +4928,7 @@ function frontPageLabel() {
     return frontPageIndex === 0 ? HEADER_HOME_PAGE : `${HEADER_HOME_PAGE} +${frontPageIndex}`;
 }
 
-// Stories the Quelch button hid from the Front page lists: a JSON object in localStorage that maps each story
+// Stories the Quelch button hid from the Front page and Search all lists: a JSON object in localStorage that maps each story
 // id to the time it was quelched, in milliseconds since the epoch. One press stamps all its stories with one
 // time, later than every earlier press, so the time names the press for Unquelch. Delete on the storage line
 // removes the object.
@@ -4910,15 +4970,12 @@ function unquelchStories(quelchedAt) {
     storeQuelched(quelched);
 }
 
-// The current front page's stories that are not quelched, how many of its stories are, and the latest press
-// that hid any of them (null when none is hidden): its time and its story count on every page. A quelched
-// story leaves its page shorter; no story moves in from the next page.
-function frontPageStories() {
-    const start = frontPageIndex * FRONT_PAGE_SIZE;
+// The stories of a list that are not quelched, how many of its stories are, and the latest press that hid any
+// of them (null when none is hidden): its time and its story count in every list.
+function quelchView(stories) {
     const quelched = quelchedStories();
-    const page = homePageStories.slice(start, start + FRONT_PAGE_SIZE);
-    const shown = page.filter(story => !Object.hasOwn(quelched, story.id));
-    const hiddenTimes = page.filter(story => Object.hasOwn(quelched, story.id)).map(story => quelched[story.id]);
+    const shown = stories.filter(story => !Object.hasOwn(quelched, story.id));
+    const hiddenTimes = stories.filter(story => Object.hasOwn(quelched, story.id)).map(story => quelched[story.id]);
     if (hiddenTimes.length === 0) return { shown, quelchedCount: 0, latestQuelch: null };
     const quelchedAt = hiddenTimes.reduce((maximum, time) => Math.max(maximum, time));
     const storyCount = Object.values(quelched).filter(time => time === quelchedAt).length;
@@ -4986,29 +5043,30 @@ function listIsOpen() {
 }
 
 // Fills and opens the list: the header row, then one row per story above the Min comments box, newest
-// first. headerFor names the header from the rows that remain. frontPage is null for other lists; for a
-// front page (frontPageStories) the header adds a Quelch button after its name while the list has rows,
-// which quelches exactly those rows, and, while the page has quelched stories, their count and an
-// Unquelch button that shows again the stories of the latest press that hid any of them. On a front page a
-// right click on a row quelches only that row's story, as its own press, instead of opening the browser's menu
-// and loading the thread; a right click on the row's HN link keeps the browser's menu.
-function showList(stories, headerFor, frontPage) {
+// first. headerFor names the header from the rows that remain. quelch is null for a list that has no stories
+// to quelch (a prompt or a failure); otherwise it is the quelchView of the list's stories, and the header adds a
+// Quelch button after its name while the list has rows, which quelches exactly those rows, and, while the list
+// has quelched stories, their count and an Unquelch button that shows again the stories of the latest press
+// that hid any of them. With a quelch view a right click on a row quelches only that row's story, as its own
+// press, instead of opening the browser's menu and loading the thread, which would empty the Thread box; a
+// right click on the row's HN link keeps the browser's menu.
+function showList(stories, headerFor, quelch) {
     listStories = sortStoriesNewestFirst(storiesAboveMinComments(stories));
     activeIndex = -1;
     const header = headerFor(listStories);
     const headerItem = makeElement('li', { className: 'header story-option' });
     const headerText = makeElement('span', { text: header });
-    const quelchShown = frontPage !== null && listStories.length > 0;
+    const quelchShown = quelch !== null && listStories.length > 0;
     if (quelchShown) {
         const listed = listStories;
-        headerText.append(headerButton('Quelch', `Hide these ${counted(listed.length, 'story', 'stories')} from the Front page lists in this browser; right-click a story to hide only that one`,
+        headerText.append(headerButton('Quelch', `Hide these ${counted(listed.length, 'story', 'stories')} from the Front page and Search all lists in this browser; right-click a story to hide only that one`,
             () => changeQuelched('Quelch', () => quelchStories(listed))));
     }
-    if (frontPage !== null && frontPage.latestQuelch !== null) {
-        const { quelchedAt, storyCount } = frontPage.latestQuelch;
+    if (quelch !== null && quelch.latestQuelch !== null) {
+        const { quelchedAt, storyCount } = quelch.latestQuelch;
         // A comma after the Quelch button would sit apart from the name it follows.
         const separator = quelchShown ? '' : ', ';
-        headerText.append(`${separator}${frontPage.quelchedCount} quelched`, headerButton('Unquelch', `Show again the ${counted(storyCount, 'story', 'stories')} of the latest quelch that hid stories on this page`,
+        headerText.append(`${separator}${quelch.quelchedCount} quelched`, headerButton('Unquelch', `Show again the ${counted(storyCount, 'story', 'stories')} of the latest quelch that hid stories in this list`,
             () => changeQuelched('Unquelch', () => unquelchStories(quelchedAt))));
     }
     headerItem.append(headerText, makeElement('span', { className: 'story-hn-head', text: 'discussion' }));
@@ -5056,10 +5114,10 @@ function showList(stories, headerFor, frontPage) {
         text.append(title, detail);
         item.append(text, link);
         item.addEventListener('mousedown', event => {
-            if (frontPage !== null && event.button === MOUSE_BUTTON_SECONDARY) return;
+            if (quelch !== null && event.button === MOUSE_BUTTON_SECONDARY) return;
             pickStory(story);
         });
-        if (frontPage !== null) {
+        if (quelch !== null) {
             item.addEventListener('contextmenu', event => {
                 event.preventDefault();
                 changeQuelched('Quelch', () => quelchStories([story]));
@@ -5121,6 +5179,23 @@ function changeQuelched(action, change) {
     refreshList();
 }
 
+// Shows the stories that are not quelched and that keep accepts. The header's quelched count and Unquelch cover
+// every quelched story among stories, whether keep accepts it or not. A quelched story leaves its list shorter;
+// no story moves in from the next front page or from beyond the search's cap.
+function showUnquelchedList(stories, headerFor, keep) {
+    let view;
+    try {
+        view = quelchView(stories);
+    } catch (error) {
+        showList([], () => HEADER_QUELCHED_UNREADABLE, null);
+        setStatus(`Quelched stories unreadable: ${error.message}. Delete on the storage line removes them.`, true);
+        return;
+    }
+    showList(view.shown.filter(keep), headerFor, view);
+}
+
+const KEEP_EVERY_STORY = () => true;
+
 // Shows only the chosen source: a local filter of the current front page, or a capped Algolia search
 // after enough text has been entered. A numeric id needs no list in either mode.
 function refreshList() {
@@ -5136,16 +5211,9 @@ function refreshList() {
             showList([], () => homePageHeader, null);
             return;
         }
-        let page;
-        try {
-            page = frontPageStories();
-        } catch (error) {
-            showList([], () => HEADER_QUELCHED_UNREADABLE, null);
-            setStatus(`Quelched stories unreadable: ${error.message}. Delete on the storage line removes them.`, true);
-            return;
-        }
+        const start = frontPageIndex * FRONT_PAGE_SIZE;
         const needle = text.toLowerCase();
-        showList(page.shown.filter(story => story.title.toLowerCase().includes(needle)), frontPageLabel, page);
+        showUnquelchedList(homePageStories.slice(start, start + FRONT_PAGE_SIZE), frontPageLabel, story => story.title.toLowerCase().includes(needle));
         return;
     }
     if (text.length < SEARCH_MIN_CHARS) {
@@ -5154,7 +5222,7 @@ function refreshList() {
         return;
     }
     if (lastSearch !== null && lastSearch.text === text) {
-        showList(lastSearch.stories, searchHeader, null);
+        showUnquelchedList(lastSearch.stories, searchHeader, KEEP_EVERY_STORY);
     } else {
         scheduleStorySearch(text);
     }
@@ -5197,7 +5265,7 @@ async function populateFrontPage() {
 // events; the search waits for a pause. A result for a search that is no longer the latest, or that
 // arrives after the list was closed, is dropped.
 async function scheduleStorySearch(text) {
-    showList(lastSearch === null ? [] : lastSearch.stories, () => HEADER_SEARCHING, null);
+    showUnquelchedList(lastSearch === null ? [] : lastSearch.stories, () => HEADER_SEARCHING, KEEP_EVERY_STORY);
     const isCurrent = searchLatest.start();
     await defaultSleep(SEARCH_DEBOUNCE_MS);
     if (!isCurrent()) {
@@ -5207,7 +5275,7 @@ async function scheduleStorySearch(text) {
         const stories = await fetchStories(storySearchUrl(text), `the search "${text}"`);
         lastSearch = { text, stories };
         if (isCurrent() && listIsOpen()) {
-            showList(stories, searchHeader, null);
+            showUnquelchedList(stories, searchHeader, KEEP_EVERY_STORY);
         }
     } catch (error) {
         if (isCurrent() && listIsOpen()) {
