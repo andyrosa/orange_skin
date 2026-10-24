@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-M7kLdaxRYn/HOel4uxxaBHMANOwBrnd8wr07TOhuB3o=' 'sha256-6l7KsGRpnFER4b53gzkjbjPJiwR0Spy7ad0LH836foU='; style-src 'sha256-VeggIrb0AGHBG4tDlKdc2D3IcWSw1DeeSzuqWkcpjRs='; connect-src https://openrouter.ai https://hn.algolia.com https://hacker-news.firebaseio.com https://api.keenable.ai; img-src data:; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-M7kLdaxRYn/HOel4uxxaBHMANOwBrnd8wr07TOhuB3o=' 'sha256-I0ExNShJM4pb6L/rG0fl7fuxcyvcz/ivTHfTLHzI4WQ='; style-src 'sha256-VeggIrb0AGHBG4tDlKdc2D3IcWSw1DeeSzuqWkcpjRs='; connect-src https://openrouter.ai https://hn.algolia.com https://hacker-news.firebaseio.com https://api.keenable.ai; img-src data:; base-uri 'none'; form-action 'none'">
 <title>Orange Split - For and Against on Hacker News</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 32 32%27%3E%3Crect width=%2732%27 height=%2732%27 fill=%27%23ff6600%27/%3E%3Ctext x=%2716%27 y=%2721%27 font-family=%27sans-serif%27 font-weight=%27bold%27 font-size=%2714%27 text-anchor=%27middle%27 fill=%27white%27%3EOS%3C/text%3E%3C/svg%3E">
 <style>
@@ -4852,6 +4852,10 @@ const HEADER_SEARCH_FAILED = 'Search failed';
 const HEADER_QUELCHED_UNREADABLE = 'Quelched stories unreadable';
 const searchHeader = rows => (rows.length === 0 ? HEADER_NO_MATCHES : `${rows.length} matches sorted by date`);
 
+// MouseEvent.button of the secondary button, the one that opens the browser's context menu (the right button
+// unless the mouse is set for the left hand).
+const MOUSE_BUTTON_SECONDARY = 2;
+
 let homePageStories = null;
 let homePageHeader = HEADER_LOADING_HOME_PAGE;
 let lastSearch = null;
@@ -4985,7 +4989,9 @@ function listIsOpen() {
 // first. headerFor names the header from the rows that remain. frontPage is null for other lists; for a
 // front page (frontPageStories) the header adds a Quelch button after its name while the list has rows,
 // which quelches exactly those rows, and, while the page has quelched stories, their count and an
-// Unquelch button that shows again the stories of the latest press that hid any of them.
+// Unquelch button that shows again the stories of the latest press that hid any of them. On a front page a
+// right click on a row quelches only that row's story, as its own press, instead of opening the browser's menu
+// and loading the thread; a right click on the row's HN link keeps the browser's menu.
 function showList(stories, headerFor, frontPage) {
     listStories = sortStoriesNewestFirst(storiesAboveMinComments(stories));
     activeIndex = -1;
@@ -4995,7 +5001,7 @@ function showList(stories, headerFor, frontPage) {
     const quelchShown = frontPage !== null && listStories.length > 0;
     if (quelchShown) {
         const listed = listStories;
-        headerText.append(headerButton('Quelch', `Hide these ${counted(listed.length, 'story', 'stories')} from the Front page lists in this browser`,
+        headerText.append(headerButton('Quelch', `Hide these ${counted(listed.length, 'story', 'stories')} from the Front page lists in this browser; right-click a story to hide only that one`,
             () => changeQuelched('Quelch', () => quelchStories(listed))));
     }
     if (frontPage !== null && frontPage.latestQuelch !== null) {
@@ -5028,6 +5034,7 @@ function showList(stories, headerFor, frontPage) {
             event.stopPropagation();
             window.open(link.href, '_blank', 'noopener');
         });
+        link.addEventListener('contextmenu', event => event.stopPropagation());
         const detail = makeElement('span', { className: 'story-detail' });
         detail.title = 'Comment counts are reported by Algolia.';
         detail.append(document.createTextNode(`${counted(story.numComments, 'comment')}, ${storyDate(story)}, id ${story.id}`));
@@ -5048,7 +5055,16 @@ function showList(stories, headerFor, frontPage) {
         const text = makeElement('span', { className: 'story-text' });
         text.append(title, detail);
         item.append(text, link);
-        item.addEventListener('mousedown', () => pickStory(story));
+        item.addEventListener('mousedown', event => {
+            if (frontPage !== null && event.button === MOUSE_BUTTON_SECONDARY) return;
+            pickStory(story);
+        });
+        if (frontPage !== null) {
+            item.addEventListener('contextmenu', event => {
+                event.preventDefault();
+                changeQuelched('Quelch', () => quelchStories([story]));
+            });
+        }
         return { story, thread, item, status };
     });
     elements.storyList.replaceChildren(headerItem, ...rows.map(row => row.item));
