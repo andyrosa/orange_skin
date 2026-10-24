@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-M7kLdaxRYn/HOel4uxxaBHMANOwBrnd8wr07TOhuB3o=' 'sha256-3e0gdg34rCw49i71U83m7f3HNC9ByqAtbkjyCYCDFVY='; style-src 'sha256-VeggIrb0AGHBG4tDlKdc2D3IcWSw1DeeSzuqWkcpjRs='; connect-src https://openrouter.ai https://hn.algolia.com https://hacker-news.firebaseio.com https://api.keenable.ai; img-src data:; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-M7kLdaxRYn/HOel4uxxaBHMANOwBrnd8wr07TOhuB3o=' 'sha256-6l7KsGRpnFER4b53gzkjbjPJiwR0Spy7ad0LH836foU='; style-src 'sha256-VeggIrb0AGHBG4tDlKdc2D3IcWSw1DeeSzuqWkcpjRs='; connect-src https://openrouter.ai https://hn.algolia.com https://hacker-news.firebaseio.com https://api.keenable.ai; img-src data:; base-uri 'none'; form-action 'none'">
 <title>Orange Split - For and Against on Hacker News</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 32 32%27%3E%3Crect width=%2732%27 height=%2732%27 fill=%27%23ff6600%27/%3E%3Ctext x=%2716%27 y=%2721%27 font-family=%27sans-serif%27 font-weight=%27bold%27 font-size=%2714%27 text-anchor=%27middle%27 fill=%27white%27%3EOS%3C/text%3E%3C/svg%3E">
 <style>
@@ -3888,6 +3888,15 @@ function keyScopeText() {
     return rememberedApiKey() !== null ? KEY_SCOPE_REMEMBERED : KEY_SCOPE_MEMORY;
 }
 
+// The Delete button's tooltip shows the held key as OpenRouter's key list shows one: its first 12 characters
+// (sk-or-v1- and 3 more), '...', and its last 3, such as sk-or-v1-53f...f5d.
+const KEY_PREVIEW_HEAD_LENGTH = 12;
+const KEY_PREVIEW_TAIL_LENGTH = 3;
+
+function keyPreviewText(key) {
+    return `${key.slice(0, KEY_PREVIEW_HEAD_LENGTH)}...${key.slice(-KEY_PREVIEW_TAIL_LENGTH)}`;
+}
+
 // Takes a newly obtained key into localStorage or into memory.
 function holdApiKey(key, remember) {
     if (remember) {
@@ -4641,10 +4650,12 @@ function refreshThreadButtons() {
 
 // The held key is never written back into the input; while one is held the input is hidden.
 function refreshKeyState() {
-    const held = currentApiKey() !== null;
+    const key = currentApiKey();
+    const held = key !== null;
     elements.keyEntry.hidden = held;
     elements.keyStored.hidden = !held;
     elements.keyStored.title = keyScopeText();
+    elements.wipeKey.title = held ? keyPreviewText(key) : '';
 }
 
 function fillModelOptions(select, role, defaultKey) {
