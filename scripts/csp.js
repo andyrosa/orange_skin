@@ -42,6 +42,8 @@ function expectedPolicy(html) {
         `style-src ${hashesByDirective['style-src'].join(' ')}`,
         `connect-src ${CONNECT_HOSTS.join(' ')}`,
         'img-src data:',
+        // The style block embeds the ChiKareGo2 font as a data URL; no font is fetched from a host.
+        'font-src data:',
         "base-uri 'none'",
         "form-action 'none'",
     ].join('; ');
