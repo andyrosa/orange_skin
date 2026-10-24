@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-WZv9Sb9ziRWmq2tMEOzRUwEapD/zjGrjeAs4lxeZ0I4=' 'sha256-60AlwEybdKMn4xDJl3ytfN/AZrzth4IhiykK3cPigh4='; style-src 'sha256-ALnHgII94Px+CXYL4UyXlxvJ2WLvAjO9UPij7MkmpMw='; connect-src https://openrouter.ai https://hn.algolia.com https://hacker-news.firebaseio.com https://api.keenable.ai; img-src data:; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-WZv9Sb9ziRWmq2tMEOzRUwEapD/zjGrjeAs4lxeZ0I4=' 'sha256-f9pf7HWGF9EAMy80+6HskUz2IOAbf3X/MubL5mzbV4E='; style-src 'sha256-ALnHgII94Px+CXYL4UyXlxvJ2WLvAjO9UPij7MkmpMw='; connect-src https://openrouter.ai https://hn.algolia.com https://hacker-news.firebaseio.com https://api.keenable.ai; img-src data:; base-uri 'none'; form-action 'none'">
 <title>Orange Split - For and Against on Hacker News</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 32 32%27%3E%3Crect width=%2732%27 height=%2732%27 fill=%27%23ff6600%27/%3E%3Ctext x=%2716%27 y=%2721%27 font-family=%27sans-serif%27 font-weight=%27bold%27 font-size=%2714%27 text-anchor=%27middle%27 fill=%27white%27%3EOS%3C/text%3E%3C/svg%3E">
 <style>
@@ -4119,7 +4119,8 @@ function keyPreviewText(key) {
     return `${key.slice(0, KEY_PREVIEW_HEAD_LENGTH)}...${key.slice(-KEY_PREVIEW_TAIL_LENGTH)}`;
 }
 
-// Takes a newly obtained key into localStorage or into memory.
+// Takes a newly obtained key into localStorage or into memory. A linked article's summary that waits for a key
+// starts with it.
 function holdApiKey(key, remember) {
     if (remember) {
         localStorage.setItem(CONSTANTS.STORAGE_KEY_OPENROUTER, key);
@@ -4127,6 +4128,9 @@ function holdApiKey(key, remember) {
         memoryApiKey = key;
     }
     refreshKeyState();
+    if (articleSummaryAwaitingKey !== null && articleSummaryAwaitingKey === loadedThread) {
+        startArticleSummary(loadedThread, key);
+    }
 }
 
 function forgetApiKey() {
@@ -5846,7 +5850,7 @@ function threadCaveat(singleCall) {
 // its call still finishes and is cached.
 const articleSummaryLatest = makeLatest();
 // The thread whose summary waits for an OpenRouter key: it was loaded with no key held, and its summary is not
-// cached. A run started with a key starts the summary.
+// cached. Holding a key (holdApiKey) starts the summary.
 let articleSummaryAwaitingKey = null;
 // The thread whose summary the Article summary max box refused; raising the cap starts it again.
 let articleSummaryRefusedByCap = null;
@@ -6095,7 +6099,7 @@ async function startArticleSummary(thread, apiKey) {
         if (!isCurrent()) return;
         if (error instanceof ApiKeyMissingError) {
             articleSummaryAwaitingKey = thread;
-            showArticleSummaryText('Waiting for an OpenRouter key: the summary starts when a run starts with one.', '');
+            showArticleSummaryText('Waiting for an OpenRouter key: the summary starts once one is entered.', '');
             return;
         }
         if (error instanceof CallCapError) articleSummaryRefusedByCap = thread;
@@ -6311,9 +6315,6 @@ async function askQuestion() {
     const summaryKey = elements.questionModel.value;
     const capUsd = questionCapInBox();
     const apiKey = keyAvailable() ? resolveApiKey() : null;
-    if (apiKey !== null && articleSummaryAwaitingKey === thread) {
-        startArticleSummary(thread, apiKey);
-    }
     // A question reads the page from the saved page text, pasted or from Keenable, when there is one, instead of
     // fetching it.
     let pageText = null;
@@ -6584,9 +6585,6 @@ async function runFromPage({ urlWrite = RUN_URL_WRITE.none, runSelection } = {})
     const apiKey = fullyCached ? currentApiKey() : resolveApiKey();
     if (apiKey === null && !fullyCached) {
         return;
-    }
-    if (apiKey !== null && articleSummaryAwaitingKey === loadedThread) {
-        startArticleSummary(loadedThread, apiKey);
     }
     const writesUrl = urlWrite !== RUN_URL_WRITE.none;
     const selection = writesUrl || runSelection === undefined ? selectedRunUrlParameters() : runSelection;
@@ -6996,6 +6994,25 @@ document.addEventListener('mousedown', event => {
     }
 });
 elements.apiKey.addEventListener('input', refreshRunButton);
+// A typed or pasted key is taken, as Run takes it, when Enter is pressed in the box or the focus leaves the key row,
+// so the page shows it held at once and a summary waiting for a key starts. Moving to Remember pasted key or to the
+// sign-in button stays within the row, so the key can still be remembered. A press outside the row takes the key when
+// the pointer is released: the click of the pressed element is already decided then, so hiding the key row cannot
+// move that element, such as Ask, away from the pointer.
+function takeTypedApiKey() {
+    if (elements.apiKey.value.trim() !== '') resolveApiKey();
+}
+let pointerPressed = false;
+document.addEventListener('pointerdown', () => { pointerPressed = true; }, true);
+document.addEventListener('pointerup', () => { pointerPressed = false; }, true);
+elements.apiKey.addEventListener('keydown', event => {
+    if (event.key === 'Enter') takeTypedApiKey();
+});
+elements.keyEntry.addEventListener('focusout', event => {
+    if (elements.keyEntry.contains(event.relatedTarget)) return;
+    if (pointerPressed) document.addEventListener('pointerup', takeTypedApiKey, { once: true });
+    else takeTypedApiKey();
+});
 elements.connectOpenRouter.hidden = !pkceAvailable();
 elements.connectOpenRouter.addEventListener('click', () => {
     startOpenRouterSignIn().catch(error => setStatus(`OpenRouter sign-in could not start: ${error.message}`, true));
