@@ -89,10 +89,10 @@ The four model pickers show one benchmark, measured on one Hacker News thread (i
 
 | Model | Reasoning effort | Cost / 1000 comments | Latency / 1000 comments | Agreement with silver | Precision | Recall | Runs |
 | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: |
-| Claude Opus 5.5 | high | $1.14 | 3 minutes | 35% | 55% | 25% | 3 |
 | Claude Opus 5.5 | low | $0.89 | 67 seconds | 26% | 59% | 17% | 3 |
-| GPT-6.1 Sol | high | $0.79 | 19 minutes | 56% | 56% | 55% | 3 |
+| Claude Opus 5.5 | high | $1.14 | 3 minutes | 35% | 55% | 25% | 3 |
 | GPT-6.1 Sol | low | $0.33 | 2 minutes | 38% | 46% | 32% | 3 |
+| GPT-6.1 Sol | high | $0.79 | 19 minutes | 56% | 56% | 55% | 3 |
 <!-- silver-benchmark:end -->
 
 ## Input

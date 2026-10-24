@@ -13,6 +13,7 @@
 // The result is written to data/silver.json.
 const fs = require('node:fs');
 const lib = require('./silver_lib');
+const { runMain } = require('./load_core');
 
 const { core, MODEL, SILVER_MODELS } = lib;
 const DEFAULT_BUDGET_USD = 25;
@@ -116,9 +117,8 @@ async function buildRowsAndSummaries(thread, pool, axes, silver, run) {
 async function main() {
     const threadId = lib.readArgument('thread');
     if (!threadId || !core.isThreadId(threadId)) throw new Error('pass --thread=<numeric Hacker News item id>');
-    const capUsd = Number(lib.readArgument('budget') ?? DEFAULT_BUDGET_USD);
-    const concurrency = Number(lib.readArgument('concurrency') ?? DEFAULT_CONCURRENCY);
-    const ledger = { spentUsd: 0, capUsd };
+    const ledger = { spentUsd: 0, capUsd: lib.readNumberArgument('budget') ?? DEFAULT_BUDGET_USD };
+    const concurrency = lib.readNumberArgument('concurrency') ?? DEFAULT_CONCURRENCY;
     const meter = lib.makeMeter();
     const modelCallChat = meter.wrap(lib.makeModelCallChat({ apiKey: lib.requireApiKey(), ledger, cacheDirectory: lib.CACHE_DIRECTORY }));
     const thread = await lib.loadThread(threadId);
@@ -131,25 +131,21 @@ async function main() {
     const { stances, disputedCells, agreedPerModel } = await buildStances(thread, pool, axes, run);
     console.log(`stances: ${stances.length} silver, ${disputedCells.length} disputed cells (${JSON.stringify(agreedPerModel)}); $${ledger.spentUsd.toFixed(2)} spent in this run`);
     const silver = {
-        threadId: Number(threadId), title: thread.title, comments: thread.comments.length, chars: lib.threadChars(thread),
+        threadId: Number(threadId), title: thread.title, comments: thread.comments.length, chars: core.totalCommentChars(thread.comments),
         authors: new Set(thread.comments.map(comment => comment.author)).size,
         models: SILVER_MODELS.map(({ key, name, effort, model }) => ({ key, name, effort, model })),
         candidates: pool, partitions: Object.fromEntries(SILVER_MODELS.map((silverModel, index) => [silverModel.key, partitions[index].axes.map(axis => axis.candidates)])),
         axes, disputedAxes, stances, disputedCells,
     };
     Object.assign(silver, await buildRowsAndSummaries(thread, pool, axes, silver, run));
-    const stageKeys = ['extract', 'consolidate', 'score', 'synthesize'];
-    silver.cost = Object.fromEntries(stageKeys.map(stageKey => [stageKey, meter.stage(stageKey)]));
+    silver.cost = Object.fromEntries(core.STAGE_ORDER.map(stageKey => [stageKey, meter.stage(stageKey)]));
     silver.builtAt = new Date().toISOString();
     fs.writeFileSync(lib.SILVER_FILE, JSON.stringify(silver), 'utf8');
     const groups = {};
     for (const row of silver.rows) groups[row.group] = (groups[row.group] || 0) + 1;
-    const totalUsd = stageKeys.reduce((sum, stageKey) => sum + silver.cost[stageKey].usd, 0);
+    const totalUsd = core.STAGE_ORDER.reduce((sum, stageKey) => sum + silver.cost[stageKey].usd, 0);
     console.log(`rows: ${silver.rows.length} (${JSON.stringify(groups)}); featured axes ${JSON.stringify(silver.featuredAxes)}`);
     console.log(`wrote ${lib.SILVER_FILE}; the reference cost $${totalUsd.toFixed(2)} in all, $${ledger.spentUsd.toFixed(2)} of it in this run`);
 }
 
-main().catch(error => {
-    process.stderr.write(`ERROR: ${error.message}\n`);
-    process.exitCode = 1;
-});
+runMain(main);

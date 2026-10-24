@@ -33,6 +33,16 @@ function readArgument(name) {
     return found ? found.slice(prefix.length) : null;
 }
 
+// A numeric --<name>=<value>, or null when the argument is absent. A value that is not a number is an error, so a
+// mistyped budget or concurrency stops the script instead of becoming NaN.
+function readNumberArgument(name) {
+    const text = readArgument(name);
+    if (text === null) return null;
+    const value = Number(text);
+    if (text.trim() === '' || !Number.isFinite(value)) throw new Error(`--${name} must be a number, not ${JSON.stringify(text)}`);
+    return value;
+}
+
 // The OpenRouter key: --key=..., else the environment variable named by KEY_ENV_NAME.
 function requireApiKey() {
     const apiKey = readArgument('key') || process.env[KEY_ENV_NAME];
@@ -59,4 +69,20 @@ function makeFileStore(directory) {
     };
 }
 
-module.exports = { HTML_PATH, CORE_SCRIPT_PATTERN, readPage, blockText, loadCore, readArgument, requireApiKey, makeFileStore };
+// A saved thread snapshot, the Hacker News item as fetched, checked to hold the expected thread.
+function readThreadItem(threadFile, threadId) {
+    const item = JSON.parse(fs.readFileSync(threadFile, 'utf8'));
+    if (String(item.id) !== String(threadId)) throw new Error(`${threadFile} holds thread ${item.id}, not ${threadId}`);
+    return item;
+}
+
+// Runs a script's async main function; a failure prints one ERROR line and sets exit code 1.
+function runMain(main) {
+    main().catch(error => {
+        process.stderr.write(`ERROR: ${error.message}\n`);
+        process.exitCode = 1;
+    });
+}
+
+module.exports = { HTML_PATH, CORE_SCRIPT_PATTERN, readPage, blockText, loadCore, readArgument, readNumberArgument, requireApiKey, makeFileStore,
+    readThreadItem, runMain };

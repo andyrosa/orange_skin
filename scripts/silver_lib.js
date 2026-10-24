@@ -4,7 +4,7 @@
 // responses, so a stage is always measured on the same inputs.
 const fs = require('node:fs');
 const path = require('node:path');
-const { loadCore, readArgument, requireApiKey, makeFileStore } = require('./load_core');
+const { loadCore, readArgument, readNumberArgument, requireApiKey, makeFileStore, readThreadItem } = require('./load_core');
 
 const core = loadCore();
 const REPO_ROOT = path.join(__dirname, '..');
@@ -24,8 +24,8 @@ const SILVER_MODELS = Object.freeze([
     Object.freeze({ key: 'sol61xhigh', name: 'GPT-6.1 Sol', effort: 'xhigh', model: 'openai/gpt-6.1-sol', sampling: Object.freeze({ seed: SILVER_SEED }), reasoning: Object.freeze({ effort: 'xhigh' }) }),
     Object.freeze({ key: 'opus55high', name: 'Claude Opus 5.5', effort: 'high', model: 'anthropic/claude-opus-5.5', sampling: null, reasoning: Object.freeze({ effort: 'high' }) }),
 ]);
-// Output ceilings of the silver models by stage suffix. Reasoning tokens count against the ceiling.
-const SILVER_MAX_TOKENS = Object.freeze({ Extract: 64000, Consolidate: 128000, Score: 64000, Synthesize: 32000 });
+// Output ceilings of the silver models by stage key. Reasoning tokens count against the ceiling.
+const SILVER_MAX_TOKENS = Object.freeze({ extract: 64000, consolidate: 128000, score: 64000, synthesize: 32000 });
 const JUDGE_MAX_TOKENS = 64000;
 // Decimal places of the shares and seconds stored in results.
 const PRECISION_DIGITS = 4;
@@ -36,19 +36,14 @@ const FAILURE_MESSAGE_CHARS = 300;
 // the fixed response JSON for the call, or MODEL to send that one call to the configured model.
 const MODEL = Symbol('model');
 
+// The pipeline config of a silver model in every stage of a staged run.
 function silverConfig(silverModel) {
-    const config = {};
-    for (const [suffix, maxTokens] of Object.entries(SILVER_MAX_TOKENS)) {
-        config[`model${suffix}`] = silverModel.model;
-        config[`sampling${suffix}`] = silverModel.sampling;
-        config[`reasoning${suffix}`] = silverModel.reasoning;
-        config[`maxTokens${suffix}`] = maxTokens;
-    }
-    return config;
+    const { name, model, sampling, reasoning } = silverModel;
+    return core.optionEntry(core.STAGED_ROLES, { name, model, sampling, reasoning, maxTokens: SILVER_MAX_TOKENS }).config;
 }
 
-// The thread snapshot the reference was built on. A later fetch can differ (edited or deleted comments), so
-// the snapshot is kept in the work directory and reused.
+// The thread snapshot the reference was built on, as the pipeline sees it. A later fetch can differ (edited or
+// deleted comments), so the snapshot is kept in the work directory and reused.
 async function loadThread(threadId) {
     fs.mkdirSync(WORK_DIRECTORY, { recursive: true });
     const threadFile = path.join(WORK_DIRECTORY, `thread-${threadId}.json`);
@@ -56,19 +51,12 @@ async function loadThread(threadId) {
         process.stderr.write(`Fetching thread ${threadId}\n`);
         fs.writeFileSync(threadFile, JSON.stringify(await core.fetchThreadItem(String(threadId))), 'utf8');
     }
-    return readThreadSnapshot(threadFile, threadId);
-}
-
-// A saved thread snapshot, checked to hold the expected thread, as the pipeline sees it.
-function readThreadSnapshot(threadFile, threadId) {
-    const item = JSON.parse(fs.readFileSync(threadFile, 'utf8'));
-    if (String(item.id) !== String(threadId)) throw new Error(`${threadFile} holds thread ${item.id}, not ${threadId}`);
-    return core.flattenThread(item);
+    return core.flattenThread(readThreadItem(threadFile, threadId));
 }
 
 // Stops when the thread is not the snapshot silver was built on, which would make every grade meaningless.
 function checkSilverSnapshot(thread, silver) {
-    if (thread.comments.length !== silver.comments || threadChars(thread) !== silver.chars) {
+    if (thread.comments.length !== silver.comments || core.totalCommentChars(thread.comments) !== silver.chars) {
         throw new Error(`the thread snapshot (${thread.comments.length} comments) is not the one silver was built on (${silver.comments} comments)`);
     }
 }
@@ -91,8 +79,9 @@ function readStoredResults(file, silver) {
     return stored.silverBuiltAt === silver.builtAt ? stored.results : null;
 }
 
-function threadChars(thread) {
-    return thread.comments.reduce((sum, comment) => sum + comment.text.length + core.CONSTANTS.COMMENT_FRAME_CHARS, 0);
+// Writes a results file that readStoredResults reads back.
+function writeStoredResults(file, benchmark) {
+    fs.writeFileSync(file, JSON.stringify(benchmark, null, 1) + '\n', 'utf8');
 }
 
 // The model call path: a cache in cacheDirectory over a timed, capped OpenRouter client. ledger = { spentUsd, capUsd }. A call
@@ -133,7 +122,7 @@ function runCallChat({ apiKey, ledger, name, runNumber, firstCacheDirectory }) {
 
 // The number of runs a measurement has after `repeats` more: --repeats=<n> on the command line, 0 when absent.
 function readRepeats() {
-    const repeats = Number(readArgument('repeats') ?? 0);
+    const repeats = readNumberArgument('repeats') ?? 0;
     if (!Number.isInteger(repeats) || repeats < 0) throw new Error('--repeats must be a whole number of runs');
     return repeats;
 }
@@ -230,7 +219,7 @@ function fixedStances(table) {
         const stances = [];
         call.meta.presentedAxes.forEach((axis, index) => {
             for (const commentId of call.meta.commentIds) {
-                const stance = table.get(`${commentId}|${axis.id}`);
+                const stance = table.get(core.stanceKey(commentId, axis.id));
                 if (stance !== undefined) stances.push({ comment: commentId, axis: index + 1, stance: call.meta.swapPoles ? core.flipStance(stance) : stance });
             }
         });
@@ -260,13 +249,13 @@ function stancesOfResult(result) {
         const flipped = row.statementA !== axis.statementA;
         if (flipped && row.statementA !== axis.statementB) throw new Error(`row ${row.axisId} matches neither statement of its axis`);
         const sides = flipped ? { A: row.commentIdsB, B: row.commentIdsA } : { A: row.commentIdsA, B: row.commentIdsB };
-        for (const commentId of sides.A) agreed.set(`${commentId}|${row.axisId}`, 'A');
-        for (const commentId of sides.B) agreed.set(`${commentId}|${row.axisId}`, 'B');
-        for (const commentId of row.commentIdsM) agreed.set(`${commentId}|${row.axisId}`, 'M');
-        for (const comment of row.unverifiedComments) unsure.add(`${comment.commentId}|${row.axisId}`);
+        for (const commentId of sides.A) agreed.set(core.stanceKey(commentId, row.axisId), 'A');
+        for (const commentId of sides.B) agreed.set(core.stanceKey(commentId, row.axisId), 'B');
+        for (const commentId of row.commentIdsM) agreed.set(core.stanceKey(commentId, row.axisId), 'M');
+        for (const comment of row.unverifiedComments) unsure.add(core.stanceKey(comment.commentId, row.axisId));
     }
     for (const axis of result.unverifiedAxes) {
-        for (const comment of axis.unverifiedComments) unsure.add(`${comment.commentId}|${axis.id}`);
+        for (const comment of axis.unverifiedComments) unsure.add(core.stanceKey(comment.commentId, axis.id));
     }
     return { agreed, unsure };
 }
@@ -425,14 +414,14 @@ function gradeStancesAgainst(run, reference) {
         let equalAsGiven = 0;
         let equalSwapped = 0;
         for (const [commentId, stance] of runComments.get(runAxis.id)) {
-            const referenceStance = table.stances.get(`${commentId}|${referenceAxis.id}`);
+            const referenceStance = table.stances.get(core.stanceKey(commentId, referenceAxis.id));
             if (referenceStance === undefined) continue;
             if (referenceStance === stance) equalAsGiven += 1;
             if (referenceStance === core.flipStance(stance)) equalSwapped += 1;
         }
         const swapped = equalSwapped > equalAsGiven;
         for (const [commentId, stance] of runComments.get(runAxis.id)) {
-            translated.set(`${commentId}|${referenceAxis.id}`, swapped ? core.flipStance(stance) : stance);
+            translated.set(core.stanceKey(commentId, referenceAxis.id), swapped ? core.flipStance(stance) : stance);
         }
         pairs.push({ runAxisId: runAxis.id, referenceAxisId: referenceAxis.id, sharedComments, similarity: rounded(similarity), swapped });
     }
@@ -549,17 +538,17 @@ function readSilver() {
 // The silver stances as scoringAgreement and fixedStances use them.
 function silverStanceTable(silver) {
     return {
-        stances: new Map(silver.stances.map(([commentId, axisId, stance]) => [`${commentId}|${axisId}`, stance])),
-        disputed: new Set(silver.disputedCells.map(([commentId, axisId]) => `${commentId}|${axisId}`)),
+        stances: new Map(silver.stances.map(([commentId, axisId, stance]) => [core.stanceKey(commentId, axisId), stance])),
+        disputed: new Set(silver.disputedCells.map(([commentId, axisId]) => core.stanceKey(commentId, axisId))),
     };
 }
 
 module.exports = {
-    core, REPO_ROOT, SILVER_FILE, BENCHMARK_FILE, WORK_DIRECTORY, CACHE_DIRECTORY, SILVER_MODELS, MODEL,
-    readArgument, requireApiKey, silverConfig, loadThread, checkSilverSnapshot, readKeyList, readStoredResults, threadChars,
+    core, REPO_ROOT, SILVER_FILE, BENCHMARK_FILE, CACHE_DIRECTORY, SILVER_MODELS, MODEL,
+    readArgument, readNumberArgument, requireApiKey, silverConfig, loadThread, checkSilverSnapshot, readKeyList, readStoredResults, writeStoredResults,
     makeModelCallChat, runCallChat, readRepeats, makeMeter, runStages,
     fixedCandidates, fixedAxes, oneAxisOfAllCandidates, fixedStances, noStances, noSummary,
-    stancesOfResult, summaryMarkers, agreementOf, companions, consolidationAgreement, scoringAgreement, runSpread, runSummary, rounded, percent, failedGrade, FAILURE_MESSAGE_CHARS,
-    gradeStancesAgainst, wholeRunShape, gradeWholeRun, runLatencySeconds,
+    stancesOfResult, summaryMarkers, agreementOf, consolidationAgreement, scoringAgreement, runSpread, runSummary, rounded, percent, failedGrade, FAILURE_MESSAGE_CHARS,
+    wholeRunShape, gradeWholeRun, runLatencySeconds,
     matchCandidates, checkSummary, readSilver, silverStanceTable,
 };

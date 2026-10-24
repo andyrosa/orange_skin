@@ -17,9 +17,9 @@
 //                               scripts/silver_lib.js grades a whole run (gradeWholeRun)
 //   usd, seconds                what the run's calls cost when they were made, and its latency as the page
 //                               forecasts it (runLatencySeconds)
-const fs = require('node:fs');
 const path = require('node:path');
 const lib = require('./silver_lib');
+const { runMain } = require('./load_core');
 
 const { core, MODEL } = lib;
 const RESULT_FILE = path.join(lib.REPO_ROOT, 'data', 'pipeline-benchmark.json');
@@ -90,19 +90,16 @@ async function main() {
     if (tasks.length === 0) throw new Error('no listed configuration runs on the given threads');
     const repeats = lib.readRepeats();
     const benchmark = { silverThreadId: silver.threadId, silverBuiltAt: silver.builtAt, results: lib.readStoredResults(RESULT_FILE, silver) ?? {} };
-    const ledger = { spentUsd: 0, capUsd: Number(lib.readArgument('budget') ?? DEFAULT_BUDGET_USD) };
+    const ledger = { spentUsd: 0, capUsd: lib.readNumberArgument('budget') ?? DEFAULT_BUDGET_USD };
     const apiKey = lib.requireApiKey();
-    const concurrency = Number(lib.readArgument('concurrency') ?? core.DEFAULT_CONFIG.concurrency);
+    const concurrency = lib.readNumberArgument('concurrency') ?? core.DEFAULT_CONFIG.concurrency;
     // The tasks run side by side; the runs of one task run one after another, so that the calls in flight stay
     // within one run's concurrency per task. Each result is saved as it arrives.
     await Promise.all(tasks.map(async task => {
         benchmark.results[`${task.configKey}-${task.threadId}`] = await measure({ ...task, repeats, silver, apiKey, ledger, concurrency });
-        fs.writeFileSync(RESULT_FILE, JSON.stringify(benchmark, null, 1) + '\n', 'utf8');
+        lib.writeStoredResults(RESULT_FILE, benchmark);
     }));
     console.log(`wrote ${RESULT_FILE}; $${ledger.spentUsd.toFixed(2)} spent in this run`);
 }
 
-main().catch(error => {
-    process.stderr.write(`ERROR: ${error.message}\n`);
-    process.exitCode = 1;
-});
+runMain(main);

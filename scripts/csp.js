@@ -77,8 +77,4 @@ function main() {
     return 1;
 }
 
-module.exports = { expectedPolicy, currentPolicy };
-
-if (require.main === module) {
-    process.exitCode = main();
-}
+process.exitCode = main();

@@ -11,7 +11,7 @@
 // --cache-dir stores each finished model call as <dir>/<key>.json and reuses it on later runs.
 // Config flags apply in the order given in buildConfig; later flags override earlier ones.
 const fs = require('node:fs');
-const { loadCore, readArgument, requireApiKey, makeFileStore } = require('./load_core');
+const { loadCore, readArgument, readNumberArgument, requireApiKey, makeFileStore, readThreadItem, runMain } = require('./load_core');
 
 const core = loadCore();
 const DEFAULT_SHARE_PERCENT = 100;
@@ -28,7 +28,7 @@ function buildConfig() {
     if (configFile !== null) {
         Object.assign(config, JSON.parse(fs.readFileSync(configFile, 'utf8')));
     }
-    for (const role of ['extraction', 'consolidation', 'scoring', 'summary', 'singleCall']) {
+    for (const role of Object.keys(core.ROLE_CHOICES)) {
         const key = readArgument(role);
         if (key !== null) {
             Object.assign(config, core.roleConfig(role, key), role === 'singleCall' ? { singleCall: true } : {});
@@ -38,21 +38,21 @@ function buildConfig() {
     if (model !== null) {
         core.applyToAllStages(config, { model });
     }
-    const temperature = readArgument('temperature');
-    const seed = readArgument('seed');
+    const temperature = readNumberArgument('temperature');
+    const seed = readNumberArgument('seed');
     if (temperature !== null || seed !== null) {
         const sampling = {};
-        if (temperature !== null) sampling.temperature = Number(temperature);
-        if (seed !== null) sampling.seed = Number(seed);
+        if (temperature !== null) sampling.temperature = temperature;
+        if (seed !== null) sampling.seed = seed;
         core.applyToAllStages(config, { sampling });
     }
-    const concurrency = readArgument('concurrency');
+    const concurrency = readNumberArgument('concurrency');
     if (concurrency !== null) {
-        config.concurrency = Number(concurrency);
+        config.concurrency = concurrency;
     }
-    const budget = readArgument('budget');
+    const budget = readNumberArgument('budget');
     if (budget !== null) {
-        config.budgetUsd = Number(budget);
+        config.budgetUsd = budget;
     }
     return config;
 }
@@ -61,11 +61,7 @@ function buildConfig() {
 async function loadThreadItem(threadId, threadFile) {
     if (threadFile && fs.existsSync(threadFile)) {
         process.stderr.write(`Reading thread ${threadId} from ${threadFile}\n`);
-        const item = JSON.parse(fs.readFileSync(threadFile, 'utf8'));
-        if (String(item.id) !== threadId) {
-            throw new Error(`${threadFile} holds thread ${item.id}, not ${threadId}`);
-        }
-        return item;
+        return readThreadItem(threadFile, threadId);
     }
     process.stderr.write(`Fetching thread ${threadId}\n`);
     const item = await core.fetchThreadItem(threadId);
@@ -76,12 +72,12 @@ async function loadThreadItem(threadId, threadFile) {
     return item;
 }
 
-// Each axis prints as three lines: statement 1, statement 2, then the counts.
-function formatRow(row) {
+// Each axis prints as three lines: statement 1, statement 2, then the counts. profile is the result's.
+function formatRow(row, profile) {
     return [
         `#${String(row.rank).padStart(RANK_DIGITS)} ${row.statementA}`,
         `${STATEMENT_INDENT}${row.statementB}`,
-        `${STATEMENT_INDENT}${row.countA} on statement 1, ${row.countB} on statement 2; group ${row.group}; ${core.axisMetaText(row)}`,
+        `${STATEMENT_INDENT}${row.countA} on statement 1, ${row.countB} on statement 2; group ${row.group}; ${core.axisMetaText(row, profile)}`,
     ].join('\n');
 }
 
@@ -98,8 +94,9 @@ function report(result, elapsedSeconds) {
     } else if (result.synthesisError) {
         console.error(`Summary unavailable: ${result.synthesisError}; comparisons preserved.`);
     }
+    const profile = core.resultProfile(result);
     for (const row of result.rows) {
-        console.log(formatRow(row));
+        console.log(formatRow(row, profile));
     }
     console.log('');
     for (const line of core.formatRunSummary(result)) {
@@ -120,9 +117,9 @@ async function main() {
     const fullThread = articleFile
         ? core.createArticleSource(fs.readFileSync(articleFile, 'utf8'), readArgument('title') || '')
         : core.flattenThread(await loadThreadItem(threadId, readArgument('thread-file')));
-    const share = readArgument('share');
-    if (articleFile && share !== null && Number(share) !== 100) throw new Error('Pasted articles require --share=100; the app never silently analyzes only a prefix');
-    const thread = articleFile ? fullThread : core.threadShare(fullThread, share === null ? DEFAULT_SHARE_PERCENT : Number(share));
+    const share = readNumberArgument('share');
+    if (articleFile && share !== null && share !== 100) throw new Error('Pasted articles require --share=100; the app never silently analyzes only a prefix');
+    const thread = articleFile ? fullThread : core.threadShare(fullThread, share ?? DEFAULT_SHARE_PERCENT);
     process.stderr.write(articleFile ? `${thread.title} (complete article, ${thread.text.length} characters)\n` : `${thread.title} (${thread.comments.length} of ${fullThread.comments.length} comments)\n`);
 
     const cacheDirectory = readArgument('cache-dir');
@@ -151,7 +148,4 @@ async function main() {
     if (result.synthesisError) process.exitCode = 1;
 }
 
-main().catch(error => {
-    process.stderr.write(`ERROR: ${error.message}\n`);
-    process.exitCode = 1;
-});
+runMain(main);

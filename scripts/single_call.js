@@ -16,9 +16,9 @@
 // extraction, consolidation, and the first scoring pass, so the rows are the rows the page would show. The
 // pipeline's floor applies: an axis on whose two statements the request put fewer than MIN_AXIS_PEOPLE people
 // is dropped.
-const fs = require('node:fs');
 const path = require('node:path');
 const lib = require('./silver_lib');
+const { runMain } = require('./load_core');
 
 const { core, MODEL } = lib;
 const RESULT_FILE = path.join(lib.REPO_ROOT, 'data', 'single-call-benchmark.json');
@@ -28,8 +28,7 @@ const SINGLE_CALL_STAGE = 'singleCall';
 const WHOLE_THREAD_BATCH_CHARS = Number.MAX_SAFE_INTEGER;
 
 // The single-call choices: the page's, and Claude Fable 5.1 at low, which the page leaves out for its cost.
-const choiceOf = entry => ({ name: entry.name, effort: entry.effort, model: entry.config.modelSingleCall, sampling: entry.config.samplingSingleCall,
-    reasoning: entry.config.reasoningSingleCall, maxTokens: entry.config.maxTokensSingleCall });
+const choiceOf = entry => ({ name: entry.name, effort: entry.effort, ...core.stageSettings(entry.config, SINGLE_CALL_STAGE) });
 const SINGLE_CALL_CHOICES = Object.freeze({
     ...Object.fromEntries(Object.entries(core.SINGLE_CALL_MODELS).map(([key, entry]) => [key, choiceOf(entry)])),
     fableLow: choiceOf(core.singleCallEntry('fableLow', 'low')),
@@ -53,20 +52,14 @@ function pipelineConfig(choice, thread) {
 }
 
 // The fixed pipeline responses that stand for the request: one candidate per axis holding the comments the
-// request put on its two statements, one axis per candidate, and the request's stances as the first scoring
-// pass. The second scoring pass repeats those stances (secondPassByModel false) or goes to the model.
+// request put on its two statements, one axis per candidate (both as parseSingleCallResponse returns them), and
+// the request's stances as the first scoring pass. The second scoring pass repeats those stances
+// (secondPassByModel false) or goes to the model.
 function handlersOf(single, secondPassByModel) {
-    const sides = single.axes.map(() => ({ A: [], B: [] }));
-    for (const [key, stance] of single.stances) {
-        const { commentId, axisId } = core.parseStanceKey(key);
-        // A middle stance is on neither statement.
-        const side = sides[axisId - 1][stance];
-        if (side !== undefined) side.push(commentId);
-    }
     const requestStances = lib.fixedStances(single.stances);
     return {
-        extract: () => ({ candidates: single.axes.map((axis, index) => ({ statementA: axis.statementA, statementB: axis.statementB, commentsA: sides[index].A, commentsB: sides[index].B })) }),
-        consolidate: () => ({ axes: single.axes.map((axis, index) => ({ statementA: axis.statementA, statementB: axis.statementB, candidates: [index + 1] })) }),
+        extract: () => ({ candidates: single.candidates }),
+        consolidate: lib.fixedAxes(single.axes),
         score: call => (secondPassByModel && call.meta.passIndex === 1 ? MODEL : requestStances(call)),
         synthesize: lib.noSummary,
     };
@@ -141,20 +134,16 @@ async function main() {
     const repeats = lib.readRepeats();
     const benchmark = { threadId: silver.threadId, title: silver.title, comments: silver.comments, chars: silver.chars, silverBuiltAt: silver.builtAt,
         results: lib.readStoredResults(RESULT_FILE, silver) ?? {} };
-    const ledger = { spentUsd: 0, capUsd: Number(lib.readArgument('budget') ?? DEFAULT_BUDGET_USD) };
+    const ledger = { spentUsd: 0, capUsd: lib.readNumberArgument('budget') ?? DEFAULT_BUDGET_USD };
     const apiKey = lib.requireApiKey();
     const thread = await lib.loadThread(silver.threadId);
     lib.checkSilverSnapshot(thread, silver);
     // The choices run side by side; each result is saved as it arrives.
     await Promise.all(keys.map(async key => {
         benchmark.results[key] = await measureChoice({ choiceKey: key, repeats, silver, thread, apiKey, ledger });
-        fs.writeFileSync(RESULT_FILE, JSON.stringify(benchmark, null, 1) + '\n', 'utf8');
+        lib.writeStoredResults(RESULT_FILE, benchmark);
     }));
     console.log(`wrote ${RESULT_FILE}; $${ledger.spentUsd.toFixed(2)} spent in this run`);
 }
 
-module.exports = { SINGLE_CALL_CHOICES, pipelineConfig, handlersOf };
-if (require.main === module) main().catch(error => {
-    process.stderr.write(`ERROR: ${error.message}\n`);
-    process.exitCode = 1;
-});
+runMain(main);
