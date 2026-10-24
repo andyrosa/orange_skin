@@ -149,6 +149,7 @@ A final model synthesis covers, in this order, where everyone agrees, where the 
 - `scripts/single_call.js`: measures one request that replaces the extraction, consolidation, and scoring stages, for the models and reasoning efforts it lists, alone and with one whole-thread scoring call added, with the same figures as `scripts/pipeline_runs.js`, into `data/single-call-benchmark.json`. `--repeats=<n>` adds runs. It sends the request the page's one-pass option sends first, from the core block; `scripts/benchmark.js --embed` puts the one-request results of the page's one-pass choices in the page and in the **One-pass analysis** table.
 - `scripts/silver_lib.js`: what the four benchmark scripts share: the call cache and its repeats, the silver reference, and the grading of a stage and of a whole run.
 - `scripts/csp.js`: recomputes the Content-Security-Policy hashes of the page's two script blocks and its style block; `node scripts/csp.js` reports whether the policy is current, `--write` rewrites it. A browser refuses an inline block whose hash the policy does not name. Run `node scripts/csp.js --write` after editing an inline block.
+- `.githooks/pre-commit`: runs `scripts/csp.js` on the staged page and scripts and refuses the commit when the policy is stale. Git runs it only in a clone where `git config core.hooksPath .githooks` has been run once.
 - `.gitattributes`: makes every text file LF on every platform; its comment explains why the policy hashes do not depend on it.
 
 ## User interface

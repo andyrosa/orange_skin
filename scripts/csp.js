@@ -5,6 +5,7 @@
 //   node scripts/csp.js          reports whether the policy in the page is current; exit code 1 when not
 //   node scripts/csp.js --write  rewrites the policy in the page
 // The GitHub Pages workflow runs this script before it deploys, so a stale policy stops the deployment.
+// The pre-commit hook .githooks/pre-commit runs it on the staged files, so a stale policy also stops the commit.
 const fs = require('node:fs');
 const crypto = require('node:crypto');
 const { HTML_PATH, CORE_SCRIPT_PATTERN, readPage, blockText } = require('./load_core');

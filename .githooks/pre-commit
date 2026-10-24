@@ -1,0 +1,13 @@
+#!/bin/sh
+# Refuses a commit whose staged hn_polarization.html carries a stale Content-Security-Policy, the check that
+# .github/workflows/pages.yml runs before it deploys. The hook checks the staged page and scripts, exported from
+# the index, not the working tree, so a file that is edited but not staged neither passes nor fails the commit.
+# Git runs this hook once the clone sets core.hooksPath to .githooks; README.md, under Files, gives the command.
+set -e
+export_dir=$(mktemp -d "$(git rev-parse --git-dir)/pre-commit.XXXXXX")
+trap 'rm -rf "$export_dir"' EXIT
+git ls-files -z -- hn_polarization.html scripts | git checkout-index -z --stdin --prefix="$export_dir/"
+if ! node "$export_dir/scripts/csp.js"; then
+    echo "pre-commit: the staged hn_polarization.html has a stale Content-Security-Policy; run node scripts/csp.js --write, then stage hn_polarization.html." >&2
+    exit 1
+fi
