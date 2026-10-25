@@ -183,8 +183,9 @@ async function runStages({ thread, config, handlers, modelCallChat, label }) {
     let lastLine = '';
     return core.runPipeline({
         thread,
-        // The benchmarks measure the analysis, so the linked article's summary is left out.
-        config: { ...config, budgetUsd: Number.MAX_SAFE_INTEGER, articleSummary: false },
+        // The benchmarks measure the analysis, so the linked article's summary is left out. A page run writes no
+        // thread summary; a run here writes one unless its handlers refuse it (noSummary).
+        config: { ...config, budgetUsd: Number.MAX_SAFE_INTEGER, articleSummary: false, threadSummary: handlers.synthesize !== noSummary },
         callChat,
         onProgress: update => {
             const line = `${label}: ${update.stage} ${update.done}/${update.total}`;

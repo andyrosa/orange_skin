@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-JiNmnO6xNCsbYyObeWPUhDR1BhdhWddbjAY+8pP+Dl0=' 'sha256-VrDBo7ZTKuG0dyUKUWJngjZcYEYs2fbOldZDzga0qU8='; style-src 'sha256-Cn7DVn0Jk89Krsi1jjtqozmSUTAdahJy3HYbPPRD0g4='; connect-src https://openrouter.ai https://hn.algolia.com https://hacker-news.firebaseio.com https://api.keenable.ai; img-src data:; font-src data:; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-L9sSz/ZmfJoBbKB2wX6D1QsknHPI42l5EVrVW5hCGys=' 'sha256-HYlcrATVAxckZ8Yuj95pOBhgpIk8TvO3GIpYDi+XZdk='; style-src 'sha256-Cn7DVn0Jk89Krsi1jjtqozmSUTAdahJy3HYbPPRD0g4='; connect-src https://openrouter.ai https://hn.algolia.com https://hacker-news.firebaseio.com https://api.keenable.ai; img-src data:; font-src data:; base-uri 'none'; form-action 'none'">
 <title>Orange Skin - Hacker News Skimmer</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 32 32%27%3E%3Crect width=%2732%27 height=%2732%27 fill=%27%23ff6600%27/%3E%3Ctext x=%2716%27 y=%2721%27 font-family=%27sans-serif%27 font-weight=%27bold%27 font-size=%2714%27 text-anchor=%27middle%27 fill=%27white%27%3EOS%3C/text%3E%3C/svg%3E">
 <style>
@@ -536,11 +536,14 @@ const CONFIGURED_STAGES = Object.freeze(MODEL_STAGES.filter(stage => stage.role 
 const STAGE_OF_ROLE = Object.freeze(Object.fromEntries(CONFIGURED_STAGES.map(stage => [stage.role, stage.key])));
 const RESERVED_STAGES = Object.freeze(MODEL_STAGES.filter(stage => stage.reservesBudget).map(stage => stage.key));
 // The stage orders of a run: a thread's staged run, a thread's single-call run, and a pasted article's run. A thread
-// whose linked article is summarized in the run adds articleSummary (pipelineStageOrder).
+// run makes its summary (synthesize) only when config.threadSummary is set, as the benchmark scripts set it
+// (threadRunStageOrder). A thread whose linked article is summarized in the run adds articleSummary
+// (pipelineStageOrder).
 const STAGE_ORDER = Object.freeze(['extract', 'consolidate', 'score', 'synthesize']);
 const SINGLE_CALL_STAGE_ORDER = Object.freeze(['singleCall', 'synthesize']);
 const ARTICLE_STAGE_ORDER = Object.freeze(['prepare', 'extract', 'consolidate', 'reviewAxes', 'score', 'synthesize', 'reviewSynthesis']);
-// The roles of a staged run, in run order: every role but the single call.
+// The roles of a staged run, in run order: every role but the single call. The summary role's choice also writes
+// the linked article's summary, the answers to questions, and a pasted article's summary.
 const STAGED_ROLES = Object.freeze(STAGE_ORDER.map(stageKey => STAGE_BY_KEY[stageKey].role));
 
 // Embedded from data/silver-benchmark.json by scripts/benchmark.js --embed: the benchmark thread, and each
@@ -765,9 +768,11 @@ function stageForecast(chars, keys, remaining) {
     };
 }
 
-// The forecast of a whole run over `chars` characters: the stages run one after another.
-function estimateRun(chars, keys, remaining) {
-    const stages = Object.values(stageForecast(chars, keys, remaining));
+// The forecast of a whole run over `chars` characters: the run's stages (stageOrder) that stageForecast covers,
+// run one after another.
+function estimateRun(chars, keys, remaining, stageOrder) {
+    const forecast = stageForecast(chars, keys, remaining);
+    const stages = stageOrder.filter(stage => Object.hasOwn(forecast, stage)).map(stage => forecast[stage]);
     return { usd: stages.reduce((sum, stage) => sum + stage.usd, 0), seconds: stages.reduce((sum, stage) => sum + stage.seconds, 0) };
 }
 
@@ -782,7 +787,8 @@ function pickerFigures(role, key) {
     if (result.failed) return { usd: null, seconds: null, agreement: 0, precision: null, recall: null, failed: true };
     const chars = PICKER_COMMENTS * SILVER_BENCHMARK.chars / SILVER_BENCHMARK.comments;
     const keys = { ...DEFAULT_RUN_KEYS, [role]: key };
-    const stage = role === 'singleCall' ? estimateRun(chars, keys, ALL_UNCACHED) : stageForecast(chars, keys, ALL_UNCACHED)[STAGE_OF_ROLE[role]];
+    const stage = role === 'singleCall' ? estimateRun(chars, keys, ALL_UNCACHED, threadRunStageOrder({ ...DEFAULT_CONFIG, singleCall: true }))
+        : stageForecast(chars, keys, ALL_UNCACHED)[STAGE_OF_ROLE[role]];
     const runAgreements = result.runs ? result.runs.map(run => run.agreement) : [result.agreement];
     return { usd: stage.usd, seconds: stage.seconds, agreement: result.agreement, precision: result.precision, recall: result.recall,
         runs: runAgreements.length, lowestAgreement: Math.min(...runAgreements), highestAgreement: Math.max(...runAgreements), failed: false };
@@ -875,6 +881,9 @@ const DEFAULT_CONFIG = Object.freeze({
     concurrency: 30,
     shuffleSeed: 777,
     budgetUsd: 1.0,
+    // The page shows no thread summary, so a thread run writes none; the benchmark scripts set it to measure the
+    // summary role on the thread summary (scripts/silver_lib.js, runStages).
+    threadSummary: false,
     articleSummary: true,
 });
 
@@ -920,6 +929,16 @@ function createArticleSource(text, title = '') {
 }
 function pipelineStageOrder(source, config) {
     return sourceProfile(source).stageOrder(source, config);
+}
+// A thread run's stages before the linked article's summary: the staged run or the single call, with the summary
+// only when config.threadSummary is set.
+function threadRunStageOrder(config) {
+    const stages = config.singleCall ? SINGLE_CALL_STAGE_ORDER : STAGE_ORDER;
+    return config.threadSummary ? stages : stages.filter(stage => stage !== 'synthesize');
+}
+// The stages a run of source makes with the model choices keys under the page's settings, which its forecast sums.
+function forecastStageOrder(source, keys) {
+    return pipelineStageOrder(source, { ...DEFAULT_CONFIG, singleCall: Boolean(keys.singleCall) });
 }
 function sourceFromSnapshot(snapshot) {
     return isArticle(snapshot.source) ? createArticleSource(snapshot.source.text, snapshot.source.title) : flattenThread(snapshot.item);
@@ -1072,7 +1091,7 @@ function buildSynthesisReviewMessages(source, rows, commentsById, synthesis) {
 function estimateSourceRun(source, keys, remaining) {
     const profile = sourceProfile(source);
     const chars = totalCommentChars(profile.material(source));
-    let { usd, seconds } = estimateRun(chars, keys, remaining);
+    let { usd, seconds } = estimateRun(chars, keys, remaining, forecastStageOrder(source, keys));
     const preparationCallsLeft = ['prepare', 'reviewAxes', 'reviewSynthesis'].some(stage => remaining[stage] > 0);
     if (profile.prepared && preparationCallsLeft) {
         // An article adds a full-text preparation call on the extraction model and two review calls. Heuristic,
@@ -1199,8 +1218,9 @@ function largestShareWithinBudget(comments, keys, budgetUsd) {
     // charsBefore[count] is the size of the first `count` comments, so each percentage costs one lookup.
     const charsBefore = [0];
     for (const comment of comments) charsBefore.push(charsBefore[charsBefore.length - 1] + commentChars(comment));
+    const stageOrder = threadRunStageOrder({ ...DEFAULT_CONFIG, singleCall: Boolean(keys.singleCall) });
     for (let percent = 100; percent > 0; percent -= 1) {
-        if (estimateRun(charsBefore[shareCount(comments.length, percent)], keys, ALL_UNCACHED).usd <= budgetUsd) {
+        if (estimateRun(charsBefore[shareCount(comments.length, percent)], keys, ALL_UNCACHED, stageOrder).usd <= budgetUsd) {
             return percent;
         }
     }
@@ -1443,9 +1463,9 @@ Axes:
 // - marksFewPeople: an axis's totals say when few people took a side.
 // - prepared: a model call first prepares the source into attributed passages, and review calls then check its
 //   comparisons and its summary. A thread's comments come with it.
-// - groupedSummary: the summary is written from labels computed from the counts, one paragraph per row group
-//   (buildSynthesisMessages), and the page does not show it: the page shows each row group's comparisons under the
-//   group's heading (renderResults). An article's summary is written from the counts, in one list
+// - groupedSummary: the summary, which only a run with config.threadSummary writes (the benchmark scripts), is
+//   written from labels computed from the counts, one paragraph per row group (buildSynthesisMessages); the page
+//   shows each row group's comparisons under the group's heading and no summary (renderResults). An article's summary is written from the counts, in one list
 //   (buildArticleSynthesisMessages), and the page shows it before the comparisons.
 // - refetchable: the source can be fetched again from Hacker News.
 // - material(source): the text whose size forecasts a run.
@@ -1465,7 +1485,7 @@ const SOURCE_KINDS = Object.freeze({
         refetchable: true,
         material: source => source.comments,
         stageOrder: (source, config) => {
-            const stages = config.singleCall ? SINGLE_CALL_STAGE_ORDER : STAGE_ORDER;
+            const stages = threadRunStageOrder(config);
             return articleSummaryApplies(source, config) ? [...stages, 'articleSummary'] : stages;
         },
     }),
@@ -3902,7 +3922,7 @@ async function runPipeline({ thread, callChat, onProgress, signal, config }) {
     let synthesis = null;
     let synthesisError = null;
     let synthesisFailure = null;
-    if (rows.length > 0) {
+    if (rows.length > 0 && pipelineStageOrder(thread, cfg).includes('synthesize')) {
         report('synthesize', 0, 1);
         try {
             const summaryRows = summarizedRows(rows);
@@ -4327,9 +4347,13 @@ const LOWER_IS_BETTER = new Set(['cost', 'latency']);
 // The line under a picker's rows that says what its figures mean.
 function pickerMethodText(role) {
     if (role === 'singleCall') {
-        return `Agreement with silver: the F1 score of the run's stances against what ${SILVER_BENCHMARK.silverModels.join(' and ')} agree on, measured on one Hacker News thread of ${SILVER_BENCHMARK.comments} comments over three runs, after pairing each of the run's axes with the most similar silver axis. GPT-6.1 Sol built half of silver, which favors it. Cost and latency are forecasts of both calls on a thread of ${PICKER_COMMENTS} comments.`;
+        return `Agreement with silver: the F1 score of the run's stances against what ${SILVER_BENCHMARK.silverModels.join(' and ')} agree on, measured on one Hacker News thread of ${SILVER_BENCHMARK.comments} comments over three runs, after pairing each of the run's axes with the most similar silver axis. GPT-6.1 Sol built half of silver, which favors it. Cost and latency are forecasts of the one call on a thread of ${PICKER_COMMENTS} comments.`;
     }
-    return `Agreement with silver: how closely the choice's output in this role matches what ${SILVER_BENCHMARK.silverModels.join(' and ')} agree on, measured on one Hacker News thread of ${SILVER_BENCHMARK.comments} comments with every other stage fixed to that reference. Two runs of one choice can differ by several points; a choice that was run several times shows the mean, and its tooltip gives the number of runs and their range. Cost and latency are forecasts for this role's stage on a thread of ${PICKER_COMMENTS} comments.`;
+    // The summary role's benchmark measures the thread summary, which a page run no longer writes (threadSummary).
+    const summaryPart = role === 'summary'
+        ? ' For Summary, these figures measure the summary of a thread\'s comparisons, which only the benchmark scripts still write; the Summary choice writes the linked article\'s summary, the answers to questions, and a pasted article\'s summary.'
+        : '';
+    return `Agreement with silver: how closely the choice's output in this role matches what ${SILVER_BENCHMARK.silverModels.join(' and ')} agree on, measured on one Hacker News thread of ${SILVER_BENCHMARK.comments} comments with every other stage fixed to that reference. Two runs of one choice can differ by several points; a choice that was run several times shows the mean, and its tooltip gives the number of runs and their range. Cost and latency are forecasts for this role's stage on a thread of ${PICKER_COMMENTS} comments.${summaryPart}`;
 }
 
 let activeController = null;
