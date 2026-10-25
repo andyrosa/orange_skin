@@ -1,24 +1,20 @@
 # Orange Skin
 
-Orange Skin is a Hacker News skimmer: for a story, it summarizes the linked page, lists the opposing positions the commenters take with the number of people holding each, grouped from "Where everyone agrees" to "Where the discussion is split", and answers questions about the page and the comments. It applies the same counting to the attributed voices in a pasted article.
+Orange Skin is a Hacker News skimmer: for a story, it summarizes the linked page, lists the opposing positions the commenters take with the number of people holding each, grouped from "Where everyone agrees" to "Where the discussion is split", and answers questions about the page and the comments.
 
 ## Original motivation
 
-The original motivation was to assess the reaction to Fable 5.1.
+This contraption began as a way to count, with no human in the loop, the Hacker News opinions for and against Claude Fable 5.1.
 
-## Practical utility and lessons
+## Lessons
 
-This tool is of very limited practical utility. Since it focuses on polarization, its thread analysis does not surface interesting opinions or side stories, help user build an understanding of individual community members, or substitute for reading the comments or the article people are responding to. 
+This contraption hides interesting opinions and side stories, prevents getting to know individual Hacker News members, and discourages reading the article people are responding to.
 
-The main lesson from building it is that automated model selection is expensive, time-consuming, and of suspect quality. 
+Benchmarking model selection is expensive and time-consuming, and automating it gives results of suspect quality.
 
-The model to model comparisons (shown below) that inform the model select UI are somewhat useful.
+The model-to-model comparisons (shown below) that inform the model select UI are somewhat useful.
 
-## Goal
-
-Given a Hacker News story or a pasted article, with no human in the loop, report what the linked page says, where the commenters agree, lean, and split, how many people hold each position, and answers to questions about the page and the comments.
-
-## \<SLOP STARTS HERE\>
+## \<SLOP STARTS BELOW - ENTER AT YOUR OWN PERIL\>
 
 ## Model comparison
 
