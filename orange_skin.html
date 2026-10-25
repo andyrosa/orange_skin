@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-Jf8Zo/SGMEiefBlzQljH9j8euiaJI1Lr1odxcrDzSwo=' 'sha256-7tY4fBUuFVt3plAZ3SsSAoHd57pxpJ7QaK3YmH+xEfw='; style-src 'sha256-d9ENuiBcLwdvCXnUpn2GZYUtOGP08yAGkYestI0J46w='; connect-src https://openrouter.ai https://hn.algolia.com https://hacker-news.firebaseio.com https://api.keenable.ai; img-src data:; font-src data:; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-Jf8Zo/SGMEiefBlzQljH9j8euiaJI1Lr1odxcrDzSwo=' 'sha256-hP9PDxE36PvJkl6FCmDbVvuXnaXYqyzwJpdcN5KNeio='; style-src 'sha256-0irX108KJJX6k6lbFzW8DB1DorjnHuQxUlZyIjmDq2U='; connect-src https://openrouter.ai https://hn.algolia.com https://hacker-news.firebaseio.com https://api.keenable.ai; img-src data:; font-src data:; base-uri 'none'; form-action 'none'">
 <title>Orange Skin - Hacker News Skimmer</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 32 32%27%3E%3Crect width=%2732%27 height=%2732%27 fill=%27%23ff6600%27/%3E%3Ctext x=%2716%27 y=%2721%27 font-family=%27sans-serif%27 font-weight=%27bold%27 font-size=%2714%27 text-anchor=%27middle%27 fill=%27white%27%3EOS%3C/text%3E%3C/svg%3E">
 <style>
@@ -230,7 +230,7 @@ button { margin-right: 0.5rem; }
 #article-link { display: block; overflow-wrap: anywhere; }
 #post-text { margin-top: 1rem; max-width: 70rem; line-height: 1.5; }
 #post-text p { white-space: pre-wrap; overflow-wrap: anywhere; }
-/* What saving a key means, shown when a Save in this browser box is ticked, one statement per line, then Yes and No. */
+/* What saving a key means, shown when a Save in this browser button is pressed, one statement per line, then Yes and No. */
 .save-confirm { display: block; margin: 0.4rem 0; padding: 0.4rem 0.6rem; border: 1px solid var(--ink); }
 .save-text { display: block; white-space: pre-line; }
 #pasted-page-text { display: block; width: 100%; box-sizing: border-box; margin: 0.4rem 0; font: inherit; }
@@ -335,6 +335,7 @@ button { margin-right: 0.5rem; }
 <span id="thread-info" class="verbose-only"></span>
 <button id="refresh-thread" type="button" hidden>Refetch</button>
 <button id="wipe-key" type="button" hidden>Delete OpenRouter key</button>
+<button id="save-held-key" type="button" hidden>Save in this browser</button>
 </p>
 <p><span id="share-row" hidden>
 <span id="article-summary-cap-control" class="budget" title="Article summary max $: caps the linked article's summary"><label for="article-summary-cap">Summary $</label><input id="article-summary-cap" type="number" min="0" step="0.05"></span>
@@ -396,12 +397,10 @@ button { margin-right: 0.5rem; }
 </div>
 </div>
 <p id="key-entry">
-<label>OpenRouter key <input id="api-key" type="password" autocomplete="off"></label> <label id="remember-key-label"><input id="remember-key" type="checkbox"> Save in this browser</label> <button id="connect-openrouter" type="button" hidden>Sign in with OpenRouter instead</button>
-<span id="save-key-confirm" class="save-confirm" hidden><span id="save-key-text" class="save-text"></span> Save the key in this browser? <button id="save-key-yes" type="button">Yes</button> <button id="save-key-no" type="button">No</button></span>
+<label>OpenRouter key <input id="api-key" type="password" autocomplete="off"></label> <button id="save-key" type="button" hidden>Save in this browser</button> <button id="connect-openrouter" type="button" hidden>Sign in with OpenRouter instead</button>
 </p>
-<p id="keenable-row" hidden>Keenable: <span id="keenable-state"></span> <button id="keenable-enter-key" type="button">Enter key</button><button id="keenable-delete-key" type="button" hidden>Delete Keenable key</button>
-<span id="keenable-key-entry" hidden><label>Keenable key <input id="keenable-key" type="password" autocomplete="off"></label> <label id="keenable-remember-label"><input id="keenable-remember" type="checkbox"> Save in this browser</label> <button id="keenable-use-key" type="button">Use key</button></span>
-<span id="keenable-save-confirm" class="save-confirm" hidden><span id="keenable-save-text" class="save-text"></span> Save the key in this browser? <button id="keenable-save-yes" type="button">Yes</button> <button id="keenable-save-no" type="button">No</button></span>
+<p id="keenable-row" hidden>Keenable: <span id="keenable-state"></span> <button id="keenable-enter-key" type="button">Enter key</button><button id="keenable-delete-key" type="button" hidden>Delete Keenable key</button> <button id="keenable-save-held-key" type="button" hidden>Save in this browser</button>
+<span id="keenable-key-entry" hidden><label>Keenable key <input id="keenable-key" type="password" autocomplete="off"></label> <button id="keenable-save-key" type="button" hidden>Save in this browser</button> <button id="keenable-use-key" type="button">Use key</button></span>
 </p>
 <p>
 <span class="verbose-only">
@@ -4244,6 +4243,22 @@ function forgetApiKey() {
     refreshKeyState();
 }
 
+// Moves a key held until reload into localStorage.
+function saveHeldApiKey() {
+    localStorage.setItem(CONSTANTS.STORAGE_KEY_OPENROUTER, memoryApiKey);
+    memoryApiKey = null;
+    refreshKeyState();
+}
+
+// Each Save in this browser button and the question panel it opens (askBeforeSaving). A panel closes when its button
+// hides, so a question never outlives the key it asks about.
+const saveQuestionPanels = new Map();
+function closeSaveQuestionsOfHiddenButtons() {
+    for (const [button, panel] of saveQuestionPanels) {
+        if (button.hidden) panel.hidden = true;
+    }
+}
+
 const elements = {
     articleScope: document.getElementById('article-scope'),
     articleInput: document.getElementById('article-input'),
@@ -4271,25 +4286,17 @@ const elements = {
     keyEntry: document.getElementById('key-entry'),
     connectOpenRouter: document.getElementById('connect-openrouter'),
     apiKey: document.getElementById('api-key'),
-    rememberKey: document.getElementById('remember-key'),
-    rememberKeyLabel: document.getElementById('remember-key-label'),
-    saveKeyConfirm: document.getElementById('save-key-confirm'),
-    saveKeyText: document.getElementById('save-key-text'),
-    saveKeyYes: document.getElementById('save-key-yes'),
-    saveKeyNo: document.getElementById('save-key-no'),
+    saveKey: document.getElementById('save-key'),
+    saveHeldKey: document.getElementById('save-held-key'),
     keenableRow: document.getElementById('keenable-row'),
     keenableState: document.getElementById('keenable-state'),
     keenableEnterKey: document.getElementById('keenable-enter-key'),
     keenableDeleteKey: document.getElementById('keenable-delete-key'),
     keenableKeyEntry: document.getElementById('keenable-key-entry'),
     keenableKey: document.getElementById('keenable-key'),
-    keenableRemember: document.getElementById('keenable-remember'),
-    keenableRememberLabel: document.getElementById('keenable-remember-label'),
+    keenableSaveKey: document.getElementById('keenable-save-key'),
+    keenableSaveHeldKey: document.getElementById('keenable-save-held-key'),
     keenableUseKey: document.getElementById('keenable-use-key'),
-    keenableSaveConfirm: document.getElementById('keenable-save-confirm'),
-    keenableSaveText: document.getElementById('keenable-save-text'),
-    keenableSaveYes: document.getElementById('keenable-save-yes'),
-    keenableSaveNo: document.getElementById('keenable-save-no'),
     wipeKey: document.getElementById('wipe-key'),
     oldSchool: document.getElementById('old-school'),
     verbose: document.getElementById('verbose'),
@@ -4996,6 +5003,9 @@ function refreshKeyState() {
     elements.keyEntry.hidden = held;
     elements.wipeKey.hidden = !held;
     elements.wipeKey.title = held ? `${keyPreviewText(key)}, ${keyScopeText()}` : '';
+    elements.saveKey.hidden = elements.apiKey.value.trim() === '';
+    elements.saveHeldKey.hidden = !held || rememberedApiKey() !== null;
+    closeSaveQuestionsOfHiddenButtons();
 }
 
 // Fills a picker's hidden select with its role's choices and selects the role's default.
@@ -6678,8 +6688,8 @@ function resolveApiKey() {
         setStatus('Enter an OpenRouter key.', true);
         return null;
     }
-    holdApiKey(typed, elements.rememberKey.checked);
     elements.apiKey.value = '';
+    holdApiKey(typed, false);
     return typed;
 }
 
@@ -7150,45 +7160,67 @@ elements.oldSchool.addEventListener('change', () => {
 const keyStorageOwner = location.protocol === 'file:' ? 'pages opened from files (file://)' : location.origin;
 const saveKeyStatements = [
     `Saves the key in this browser's localStorage for ${keyStorageOwner}; the page opened from another address keeps its own copy.`,
-    'The key stays until Delete OpenRouter key or until the browser\'s site data is cleared; unticked, the key is forgotten on reload.',
+    'The key stays until Delete OpenRouter key or until the browser\'s site data is cleared; without Save in this browser, the key is forgotten on reload.',
     'Anyone using this browser profile, and any script running on this page, can read it.',
     'The key is sent only to openrouter.ai.',
     'Set a credit limit on the key in OpenRouter\'s dashboard to bound what it can spend.',
 ];
-// A Save in this browser box shows statements as its tooltip. A tooltip needs a mouse, so ticking the box shows the
-// same statements in panel and asks; only yes ticks it. Unticking needs no question.
-function askBeforeSaving({ checkbox, label, panel, text, yes, no, statements }) {
-    label.title = statements.join('\n');
-    text.textContent = statements.join('\n');
-    checkbox.addEventListener('change', () => {
-        if (!checkbox.checked) return;
-        checkbox.checked = false;
+const saveKeenableKeyStatements = [
+    `Saves the key in this browser's localStorage for ${keyStorageOwner}; the page opened from another address keeps its own copy.`,
+    'The key stays until Delete Keenable key or until the browser\'s site data is cleared; without Save in this browser, the key is forgotten on reload.',
+    'Anyone using this browser profile, and any script running on this page, can read it.',
+    'The key is sent only to api.keenable.ai.',
+    'Keenable\'s free tier covers 100,000 requests a month; the page makes one request for each article summary it has no saved text for.',
+];
+// A Save in this browser button shows statements as its tooltip. A tooltip needs a mouse, so pressing the button shows
+// the same statements in a panel at the end of the button's line and asks; only Yes calls save.
+function askBeforeSaving(button, statements, save) {
+    const yes = makeElement('button', { text: 'Yes' });
+    const no = makeElement('button', { text: 'No' });
+    yes.type = 'button';
+    no.type = 'button';
+    const panel = makeElement('span', { className: 'save-confirm' });
+    panel.hidden = true;
+    panel.append(makeElement('span', { className: 'save-text', text: statements.join('\n') }), ' Save the key in this browser? ', yes, ' ', no);
+    button.parentElement.append(panel);
+    button.title = statements.join('\n');
+    button.addEventListener('click', () => {
         panel.hidden = false;
         yes.focus();
     });
     yes.addEventListener('click', () => {
-        checkbox.checked = true;
         panel.hidden = true;
-        checkbox.focus();
+        save();
     });
     no.addEventListener('click', () => {
         panel.hidden = true;
-        checkbox.focus();
+        button.focus();
     });
+    saveQuestionPanels.set(button, panel);
 }
-askBeforeSaving({ checkbox: elements.rememberKey, label: elements.rememberKeyLabel, panel: elements.saveKeyConfirm, text: elements.saveKeyText,
-    yes: elements.saveKeyYes, no: elements.saveKeyNo, statements: saveKeyStatements });
-askBeforeSaving({ checkbox: elements.keenableRemember, label: elements.keenableRememberLabel, panel: elements.keenableSaveConfirm,
-    text: elements.keenableSaveText, yes: elements.keenableSaveYes, no: elements.keenableSaveNo, statements: [
-        `Saves the key in this browser's localStorage for ${keyStorageOwner}; the page opened from another address keeps its own copy.`,
-        'The key stays until Delete Keenable key or until the browser\'s site data is cleared; unticked, the key is forgotten on reload.',
-        'Anyone using this browser profile, and any script running on this page, can read it.',
-        'The key is sent only to api.keenable.ai.',
-        'Keenable\'s free tier covers 100,000 requests a month; the page makes one request for each article summary it has no saved text for.',
-    ] });
+askBeforeSaving(elements.saveKey, saveKeyStatements, () => {
+    const typed = elements.apiKey.value.trim();
+    elements.apiKey.value = '';
+    holdApiKey(typed, true);
+    setStatus('OpenRouter key saved in this browser.');
+});
+askBeforeSaving(elements.saveHeldKey, saveKeyStatements, () => {
+    saveHeldApiKey();
+    setStatus('OpenRouter key saved in this browser.');
+});
+askBeforeSaving(elements.keenableSaveKey, saveKeenableKeyStatements, () => {
+    holdKeenableKey(elements.keenableKey.value.trim(), true);
+    setStatus('Keenable key saved in this browser.');
+});
+askBeforeSaving(elements.keenableSaveHeldKey, saveKeenableKeyStatements, () => {
+    localStorage.setItem(CONSTANTS.STORAGE_KEY_KEENABLE, memoryKeenableKey);
+    memoryKeenableKey = null;
+    refreshKeenableState();
+    setStatus('Keenable key saved in this browser.');
+});
 
 // The Keenable line: without a key, Keenable requests use the free keyless allowance. Enter key opens the key box; Use
-// key or Enter in it holds the typed key, in localStorage when Save in this browser is ticked, else until reload.
+// key or Enter in it holds the typed key until reload, and Save in this browser stores a typed or held key in localStorage.
 // The Keenable line shows only while it can help: a key is held or being entered, or the free allowance ran out.
 function refreshKeenableState() {
     const key = currentKeenableKey();
@@ -7198,6 +7230,16 @@ function refreshKeenableState() {
     elements.keenableEnterKey.hidden = held || !elements.keenableKeyEntry.hidden;
     elements.keenableDeleteKey.hidden = !held;
     elements.keenableRow.hidden = !held && elements.keenableKeyEntry.hidden && !keenableAllowanceUsedUp;
+    elements.keenableSaveKey.hidden = elements.keenableKey.value.trim() === '';
+    elements.keenableSaveHeldKey.hidden = !held || localStorage.getItem(CONSTANTS.STORAGE_KEY_KEENABLE) !== null;
+    closeSaveQuestionsOfHiddenButtons();
+}
+function holdKeenableKey(key, remember) {
+    if (remember) localStorage.setItem(CONSTANTS.STORAGE_KEY_KEENABLE, key);
+    else memoryKeenableKey = key;
+    elements.keenableKey.value = '';
+    elements.keenableKeyEntry.hidden = true;
+    refreshKeenableState();
 }
 function useTypedKeenableKey() {
     const key = elements.keenableKey.value.trim();
@@ -7205,12 +7247,7 @@ function useTypedKeenableKey() {
         setStatus('Enter a Keenable key, or leave the box closed to use the free allowance.', true);
         return;
     }
-    if (elements.keenableRemember.checked) localStorage.setItem(CONSTANTS.STORAGE_KEY_KEENABLE, key);
-    else memoryKeenableKey = key;
-    elements.keenableKey.value = '';
-    elements.keenableKeyEntry.hidden = true;
-    elements.keenableSaveConfirm.hidden = true;
-    refreshKeenableState();
+    holdKeenableKey(key, false);
 }
 elements.keenableEnterKey.addEventListener('click', () => {
     elements.keenableKeyEntry.hidden = false;
@@ -7219,6 +7256,7 @@ elements.keenableEnterKey.addEventListener('click', () => {
 });
 elements.keenableUseKey.addEventListener('click', useTypedKeenableKey);
 elements.keenableKey.addEventListener('keydown', event => { if (event.key === 'Enter') useTypedKeenableKey(); });
+elements.keenableKey.addEventListener('input', refreshKeenableState);
 elements.keenableDeleteKey.addEventListener('click', () => {
     localStorage.removeItem(CONSTANTS.STORAGE_KEY_KEENABLE);
     memoryKeenableKey = null;
@@ -7234,9 +7272,10 @@ elements.verbose.addEventListener('change', () => {
     else localStorage.removeItem(CONSTANTS.STORAGE_KEY_VERBOSE);
 });
 elements.apiKey.addEventListener('input', refreshRunButton);
+elements.apiKey.addEventListener('input', refreshKeyState);
 // A typed or pasted key is taken, as Run takes it, when Enter is pressed in the box or the focus leaves the key row,
-// so the page shows it held at once and a summary waiting for a key starts. Moving to Save in this browser or to the
-// sign-in button stays within the row, so the key can still be remembered. A press outside the row takes the key when
+// so the page shows it held at once and a summary waiting for a key starts. Moving to Save in this browser, its
+// question, or the sign-in button stays within the row, so the typed key can still be saved. A press outside the row takes the key when
 // the pointer is released: the click of the pressed element is already decided then, so hiding the key row cannot
 // move that element, such as Ask, away from the pointer.
 function takeTypedApiKey() {
