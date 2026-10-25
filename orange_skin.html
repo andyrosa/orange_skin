@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-Jf8Zo/SGMEiefBlzQljH9j8euiaJI1Lr1odxcrDzSwo=' 'sha256-hP9PDxE36PvJkl6FCmDbVvuXnaXYqyzwJpdcN5KNeio='; style-src 'sha256-0irX108KJJX6k6lbFzW8DB1DorjnHuQxUlZyIjmDq2U='; connect-src https://openrouter.ai https://hn.algolia.com https://hacker-news.firebaseio.com https://api.keenable.ai; img-src data:; font-src data:; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-JiNmnO6xNCsbYyObeWPUhDR1BhdhWddbjAY+8pP+Dl0=' 'sha256-VrDBo7ZTKuG0dyUKUWJngjZcYEYs2fbOldZDzga0qU8='; style-src 'sha256-Cn7DVn0Jk89Krsi1jjtqozmSUTAdahJy3HYbPPRD0g4='; connect-src https://openrouter.ai https://hn.algolia.com https://hacker-news.firebaseio.com https://api.keenable.ai; img-src data:; font-src data:; base-uri 'none'; form-action 'none'">
 <title>Orange Skin - Hacker News Skimmer</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 32 32%27%3E%3Crect width=%2732%27 height=%2732%27 fill=%27%23ff6600%27/%3E%3Ctext x=%2716%27 y=%2721%27 font-family=%27sans-serif%27 font-weight=%27bold%27 font-size=%2714%27 text-anchor=%27middle%27 fill=%27white%27%3EOS%3C/text%3E%3C/svg%3E">
 <style>
@@ -52,8 +52,6 @@ h1 { display: flex; align-items: center; }
     --paper: #f6f6ef;
     --muted: #828282;
     --blue: #0000cc;
-    --orange: #cc3300;
-    --purple: #660099;
     --red: #cc0000;
     --green: #006600;
     --brown: #993300;
@@ -244,10 +242,6 @@ button { margin-right: 0.5rem; }
 #ask-question { margin: 0 0 0 auto; }
 #results, #results-end { margin-top: 1rem; }
 .narrative { max-width: 70rem; line-height: 1.5; }
-.group-toggle { margin: 0; padding: 0; border: 0; background: none; color: inherit; font: inherit; text-align: left; cursor: pointer; }
-.group-toggle::before { content: "\25B8\00A0"; }
-.group-toggle[aria-expanded="true"]::before { content: "\25BE\00A0"; }
-.group-toggle:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
 .narrative-counts { white-space: nowrap; font-size: 0.85em; color: var(--muted); }
 .narrative-counts .count-toggle { font: inherit; margin: 0; padding: 0 0.1em; border: 0; background: none; color: inherit; cursor: pointer; text-decoration: underline; text-underline-offset: 0.15em; }
 .narrative-counts .count-toggle:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
@@ -255,36 +249,18 @@ button { margin-right: 0.5rem; }
 .narrative .evidence h3 { font-size: 14px; margin: 0 0 0.5rem; }
 .narrative .evidence-comment { margin: 0.75rem 0; }
 .narrative .evidence-comment header { font-size: 12px; }
-.narrative .evidence-comment p { font-size: 13px; white-space: pre-wrap; margin: 0.15rem 0; }
-.axis { padding: 0.6rem 0; border-bottom: 1px dotted var(--ink); }
-.axis .statement { line-height: 1.15; margin: 0.1rem 0; }
-.axis .statement.side1 { color: var(--blue); font-size: 18px; }
-.axis .statement.side2 { color: var(--orange); font-size: 14px; }
-.axis .proportion-row { display: flex; align-items: center; margin: 0.35rem 0; }
-.axis .count { font-size: 11px; color: var(--muted); font-variant-numeric: tabular-nums; }
-.axis .count.side1 { margin-right: 0.4rem; }
-.axis .count.side2 { margin-left: 0.4rem; }
-.axis .middle-count { margin-left: 0.3rem; }
-.axis .count-toggle { border: 0; background: none; cursor: pointer; padding: 0; text-decoration: underline; }
-.axis .count-toggle.side1 { color: var(--blue); }
-.axis .count-toggle.side2 { color: var(--orange); }
-.axis .count-toggle.unverified { color: var(--red); margin-left: 0.4rem; }
-.axis .proportion { display: flex; height: 6px; width: 24rem; border: 1px solid var(--ink); background: var(--paper); }
-.axis .proportion span { display: block; height: 100%; flex: var(--share); }
-.axis .proportion .side1 { background: var(--blue); }
-.axis .proportion .mid { background: var(--dither); }
-.axis .proportion .contradiction { background: var(--purple); }
-.axis .proportion .side2 { background: var(--orange); }
-.axis .evidence { margin: 0.5rem 0 0.25rem; padding-left: 1rem; border-left: 1px solid var(--ink); }
+.narrative .evidence-comment p { font-size: 13px; white-space: pre-wrap; overflow-wrap: anywhere; margin: 0.15rem 0; }
+/* A comparison is one line in the body font: its statement and its tally, which open to its comments. */
+.axis { max-width: 70rem; }
+.axis > summary { margin: 0.2rem 0; cursor: pointer; }
+.axis .tally { white-space: nowrap; }
+.axis .evidence { margin: 0.25rem 0 0.75rem; padding-left: 1rem; border-left: 1px solid var(--ink); }
 .axis .evidence-group { margin: 0.6rem 0; }
 .axis .evidence-group h3 { font-size: 13px; margin: 0 0 0.3rem; }
-.axis .evidence-group.side1 h3 { color: var(--blue); }
-.axis .evidence-group.mid h3 { color: var(--muted); }
-.axis .evidence-group.side2 h3 { color: var(--orange); }
-.axis .evidence-group.unverified h3 { color: var(--red); }
+.axis .evidence-group > summary { cursor: pointer; }
 .axis .evidence-comment { margin: 0.5rem 0; max-width: 70rem; }
 .axis .evidence-comment header { font-size: 11px; color: var(--muted); }
-.axis .evidence-comment p { font-size: 13px; line-height: 1.35; margin: 0.15rem 0; white-space: pre-wrap; }
+.axis .evidence-comment p { font-size: 13px; line-height: 1.35; margin: 0.15rem 0; white-space: pre-wrap; overflow-wrap: anywhere; }
 #warnings ul { margin: 0; padding-left: 1.5rem; }
 #unverified-axes { margin: 1rem 0; color: var(--muted); }
 #unverified-axes > p { font-size: 13px; margin: 0.5rem 0; }
@@ -1468,8 +1444,9 @@ Axes:
 // - prepared: a model call first prepares the source into attributed passages, and review calls then check its
 //   comparisons and its summary. A thread's comments come with it.
 // - groupedSummary: the summary is written from labels computed from the counts, one paragraph per row group
-//   (buildSynthesisMessages). An article's summary is written from the counts, in one list
-//   (buildArticleSynthesisMessages).
+//   (buildSynthesisMessages), and the page does not show it: the page shows each row group's comparisons under the
+//   group's heading (renderResults). An article's summary is written from the counts, in one list
+//   (buildArticleSynthesisMessages), and the page shows it before the comparisons.
 // - refetchable: the source can be fetched again from Hacker News.
 // - material(source): the text whose size forecasts a run.
 // - stageOrder(source, config): the stages of a run, in order.
@@ -2687,13 +2664,6 @@ function withAuthorCounts(row, commentsById) {
     return { ...row, ...authorCounts(stances), authors: stances.size, comments: agreed.size, evidenceIds };
 }
 
-// Shares of people in the two sides, middle, and self contradiction.
-function proportionShares(row) {
-    const counts = [row.countA, row.countM, row.countB, row.countC || 0];
-    const total = counts.reduce((sum, count) => sum + count, 0);
-    return counts.map(count => total === 0 ? 0 : count / total);
-}
-
 // Display helpers shared by the page and the headless runner. All return plain strings.
 const COST_DIGITS = 4;
 const SECONDS_SHOWN_AS_SECONDS_LIMIT = 90;
@@ -2792,7 +2762,7 @@ function orientRows(rows) {
 const AGREES_SHARE = 0.75;
 const LEANS_SHARE = 0.6;
 const ROW_GROUPS = Object.freeze([
-    Object.freeze({ key: 'unanimous', title: 'Where everyone agrees' }),
+    Object.freeze({ key: 'unanimous', title: 'Where nobody disagrees' }),
     Object.freeze({ key: 'agrees', title: 'Where the discussion agrees' }),
     Object.freeze({ key: 'leans', title: 'Where the discussion leans one way' }),
     Object.freeze({ key: 'split', title: 'Where the discussion is split' }),
@@ -5710,22 +5680,6 @@ async function loadThreadFromPage(threadId, { share, cachedResult, cachedComment
     }
 }
 
-function renderStatement(sideClass, text) {
-    return makeElement('p', { className: `statement ${sideClass}`, text });
-}
-
-// Four segments sized by share of people on the axis; the bar itself has a fixed width.
-function renderProportionBar(row) {
-    const bar = makeElement('div', { className: 'proportion' });
-    const shares = proportionShares(row);
-    ['side1', 'mid', 'side2', 'contradiction'].forEach((segmentClass, index) => {
-        const segment = makeElement('span', { className: segmentClass });
-        segment.style.setProperty('--share', shares[index]);
-        bar.appendChild(segment);
-    });
-    return bar;
-}
-
 function evidenceToggle(text, className, kind, label, evidence, toggles) {
     const toggle = makeElement('button', { className: `count count-toggle ${className}`, text });
     toggle.type = 'button';
@@ -5749,58 +5703,6 @@ function evidenceToggle(text, className, kind, label, evidence, toggles) {
     return toggle;
 }
 
-// Each visible count opens only its corresponding comment evidence.
-function renderProportionRow(row, evidence) {
-    const wrapper = makeElement('div', { className: 'proportion-row' });
-    const toggles = [];
-    wrapper.appendChild(evidenceToggle(
-        String(row.countA),
-        'side1',
-        'side1',
-        `${row.countA} people supporting ${row.statementA}; show their verified comments`,
-        evidence,
-        toggles,
-    ));
-    wrapper.appendChild(renderProportionBar(row));
-    wrapper.appendChild(evidenceToggle(
-        String(row.countB),
-        'side2',
-        'side2',
-        `${row.countB} people supporting ${row.statementB}; show their verified comments`,
-        evidence,
-        toggles,
-    ));
-    if (row.countM > 0) {
-        wrapper.appendChild(evidenceToggle(
-            `(${row.countM} middle)`,
-            'middle-count',
-            'mid',
-            `${row.countM} middle people; show their verified comments`,
-            evidence,
-            toggles,
-        ));
-    }
-    if (row.countC > 0) {
-        wrapper.appendChild(evidenceToggle(
-            `${row.countC} self contradiction`, 'contradiction', 'contradiction',
-            `${row.countC} people with verified comments on both sides; show their comments`,
-            evidence, toggles,
-        ));
-    }
-    const unverifiedCount = (row.unverifiedComments || []).length;
-    if (unverifiedCount > 0) {
-        wrapper.appendChild(evidenceToggle(
-            `${unverifiedCount} unverified`,
-            'unverified',
-            'unverified',
-            `Show ${unverifiedCount} unverified comments`,
-            evidence,
-            toggles,
-        ));
-    }
-    return wrapper;
-}
-
 // terms are the result's source kind's (resultProfile).
 function renderEvidenceGroup(sideClass, label, commentIds, commentsById, terms) {
     if (commentIds.length === 0) {
@@ -5816,6 +5718,18 @@ function renderEvidenceGroup(sideClass, label, commentIds, commentsById, terms) 
     return group;
 }
 
+// One stance's evidence group (renderEvidenceGroup), or, when no one took the stance, its heading with zero counts
+// and a line that says so.
+function renderStanceEvidence(sideClass, label, commentIds, commentsById, terms) {
+    const group = renderEvidenceGroup(sideClass, label, commentIds, commentsById, terms);
+    if (group) return group;
+    const empty = makeElement('section', { className: `evidence-group ${sideClass}` });
+    empty.dataset.evidenceKind = sideClass;
+    empty.appendChild(makeElement('h3', { text: `${label} — 0 ${terms.people}, 0 verified ${terms.units}` }));
+    empty.appendChild(makeElement('p', { text: 'No one in the analyzed selection took this side.' }));
+    return empty;
+}
+
 // One comment of an evidence group: its link, the given note after the link, and its text.
 function renderEvidenceComment(commentId, commentsById, note) {
     const comment = commentsById.get(commentId);
@@ -5828,11 +5742,13 @@ function renderEvidenceComment(commentId, commentsById, note) {
     return article;
 }
 
-function stanceLabel(stance) {
-    if (stance === STANCE_A) return 'Blue';
-    if (stance === STANCE_B) return 'Orange';
-    if (stance === STANCE_M) return 'Middle';
-    return 'not addressed';
+// The names of a scoring pass's stances: on a comparison, for or against its statement; on an unverified axis, which
+// of its two statements.
+const ROW_STANCE_NAMES = Object.freeze({ [STANCE_A]: 'For', [STANCE_B]: 'Against', [STANCE_M]: 'Middle' });
+const AXIS_STANCE_NAMES = Object.freeze({ [STANCE_A]: 'first statement', [STANCE_B]: 'second statement', [STANCE_M]: 'Middle' });
+
+function stanceLabel(stance, names) {
+    return Object.hasOwn(names, stance) ? names[stance] : 'not addressed';
 }
 
 function commentLink(commentId, commentsById) {
@@ -5845,44 +5761,45 @@ function commentLink(commentId, commentsById) {
     return link;
 }
 
-function renderUnverifiedEvidence(comments, commentsById) {
+// A comparison's comments that the two scoring passes did not classify alike, collapsed under their count; each
+// names both passes' stances.
+function renderUnverifiedEvidence(comments, commentsById, terms) {
     if (comments.length === 0) {
         return null;
     }
-    const group = makeElement('section', { className: 'evidence-group unverified' });
-    group.dataset.evidenceKind = 'unverified';
-    group.appendChild(makeElement('h3', { text: `Unverified (${comments.length})` }));
+    const group = makeElement('details', { className: 'evidence-group unverified' });
+    group.appendChild(makeElement('summary', { text: `Unverified — ${counted(comments.length, terms.unit, terms.units)} that the two scoring passes did not classify alike` }));
     for (const item of comments) {
-        group.appendChild(renderEvidenceComment(item.commentId, commentsById, ` · pass 1: ${stanceLabel(item.pass1)}; pass 2: ${stanceLabel(item.pass2)}`));
+        group.appendChild(renderEvidenceComment(item.commentId, commentsById, ` · pass 1: ${stanceLabel(item.pass1, ROW_STANCE_NAMES)}; pass 2: ${stanceLabel(item.pass2, ROW_STANCE_NAMES)}`));
     }
     return group;
 }
 
+// A comparison's comments: those for its statement and those against it, each side under its statement, then the
+// middle and self-contradiction people's when there are any, then the unverified ones.
 function renderAxisEvidence(row, commentsById, terms) {
     const evidence = makeElement('div', { className: 'evidence' });
-    evidence.id = `axis-comments-${row.axisId}`;
-    evidence.hidden = true;
     const groups = [
-        renderEvidenceGroup('side1', 'Blue', row.evidenceIds.A, commentsById, terms),
+        renderStanceEvidence('for', `For: ${row.statementA}`, row.evidenceIds.A, commentsById, terms),
+        renderStanceEvidence('against', `Against: ${row.statementB}`, row.evidenceIds.B, commentsById, terms),
         renderEvidenceGroup('mid', 'Middle', row.evidenceIds.M, commentsById, terms),
-        renderEvidenceGroup('side2', 'Orange', row.evidenceIds.B, commentsById, terms),
         renderEvidenceGroup('contradiction', 'Self contradiction', row.evidenceIds.C, commentsById, terms),
-        renderUnverifiedEvidence(row.unverifiedComments || [], commentsById),
+        renderUnverifiedEvidence(row.unverifiedComments || [], commentsById, terms),
     ].filter(group => group !== null);
     evidence.replaceChildren(...groups);
     return evidence;
 }
 
+// One comparison as one line: the statement more people took, then the people for it and against it, such as
+// (12–5). The line opens to the comparison's comments.
 function renderAxis(row, commentsById, terms) {
-    const block = makeElement('div', { className: 'axis' });
-    block.id = `comparison-${row.axisId}`;
-    block.tabIndex = -1;
-    const evidence = renderAxisEvidence(row, commentsById, terms);
-    block.appendChild(renderStatement('side1', row.statementA));
-    block.appendChild(renderProportionRow(row, evidence));
-    block.appendChild(renderStatement('side2', row.statementB));
-    block.appendChild(evidence);
-    return block;
+    const line = makeElement('details', { className: 'axis' });
+    line.id = `comparison-${row.axisId}`;
+    const summary = makeElement('summary', { text: `${row.statementA} ` });
+    summary.appendChild(makeElement('span', { className: 'tally', text: `(${row.countA}–${row.countB})` }));
+    summary.title = `${counted(row.countA, terms.person, terms.people)} for, ${counted(row.countB, terms.person, terms.people)} against; open to read their ${terms.units}`;
+    line.append(summary, renderAxisEvidence(row, commentsById, terms));
+    return line;
 }
 
 function renderUnverifiedAxes(axes, commentsById) {
@@ -5898,7 +5815,7 @@ function renderUnverifiedAxes(axes, commentsById) {
             for (const item of comments) {
                 const entry = makeElement('li');
                 entry.appendChild(commentLink(item.commentId, commentsById));
-                entry.appendChild(document.createTextNode(` - pass 1: ${stanceLabel(item.pass1)}; pass 2: ${stanceLabel(item.pass2)}`));
+                entry.appendChild(document.createTextNode(` - pass 1: ${stanceLabel(item.pass1, AXIS_STANCE_NAMES)}; pass 2: ${stanceLabel(item.pass2, AXIS_STANCE_NAMES)}`));
                 list.appendChild(entry);
             }
             block.appendChild(list);
@@ -5941,13 +5858,7 @@ function renderNarrativeSection(section, rows, savedRows, commentsById, index, t
         const count = row[`count${stance}`];
         const label = `Supporting: ${statement}`;
         const kind = `${id}-${stance}`;
-        let group = renderEvidenceGroup(kind, label, row.evidenceIds[stance], commentsById, terms);
-        if (!group) {
-            group = makeElement('section', { className: 'evidence-group' });
-            group.dataset.evidenceKind = kind;
-            group.appendChild(makeElement('h3', { text: `${label} — 0 ${terms.people}, 0 verified ${terms.units}` }));
-            group.appendChild(makeElement('p', { text: 'No one in the analyzed selection took this side.' }));
-        }
+        const group = renderStanceEvidence(kind, label, row.evidenceIds[stance], commentsById, terms);
         group.hidden = true;
         evidence.appendChild(group);
         const button = evidenceToggle(String(count), '', kind, `${counted(count, terms.person, terms.people)}. ${label}. Show their verified ${terms.units} here`, evidence, toggles);
@@ -6545,33 +6456,33 @@ function renderResults(result, comments) {
     const rows = orientRows(rankRows(result.rows.map(row => withAuthorCounts(row, commentsById))));
     const narrative = makeElement('section', { className: 'narrative' });
     if (profile.prepared) narrative.appendChild(makeElement('h2', { text: 'Claims and perspectives in this article' }));
+    // A thread result shows no summary paragraphs: each non-empty group, in rank order, is its heading and one line
+    // per comparison (renderAxis). The lines sit outside the narrative section, whose evidence styles would
+    // otherwise apply to the comparisons' evidence. An article result shows its summary paragraphs first, and every
+    // comparison sits in one expandable list after the caveats, with one heading per non-empty group.
     let synthesis = null;
-    let summaryError = result.synthesisError;
-    if (result.synthesis) {
-        try {
-            synthesis = parseSynthesisResponse(result.synthesis, rows.map(row => row.axisId));
-            if (profile.groupedSummary) synthesis = groupSynthesisSections(synthesis, new Map(rows.map(row => [row.axisId, row.group])), requiredSummaryGroups(summarizedRows(rows)), result.synthesis);
-        } catch (error) {
-            summaryError = error.message;
+    if (!profile.groupedSummary) {
+        let summaryError = result.synthesisError;
+        if (result.synthesis) {
+            try {
+                synthesis = parseSynthesisResponse(result.synthesis, rows.map(row => row.axisId));
+            } catch (error) {
+                summaryError = error.message;
+            }
         }
+        if (!synthesis) {
+            narrative.appendChild(makeElement('p', { text: summaryError
+                ? `Summary unavailable: ${summaryError}. Comparisons are preserved. Press Run to retry; uncached calls may cost money.`
+                : rows.length === 0 ? emptyComparisonMessage(result)
+                    : 'Summary unavailable. Press Run to retry; uncached model calls may incur cost.' }));
+        }
+    } else if (rows.length === 0) {
+        narrative.appendChild(makeElement('p', { text: emptyComparisonMessage(result) }));
     }
-    if (!synthesis) {
-        narrative.appendChild(makeElement('p', { text: summaryError
-            ? `Summary unavailable: ${summaryError}. Comparisons are preserved. Press Run to retry; uncached calls may cost money.`
-            : rows.length === 0 ? emptyComparisonMessage(result)
-                : 'Summary unavailable. Press Run to retry; uncached model calls may incur cost.' }));
-    }
-    const sections = synthesis ? synthesis.sections : [];
-    // A thread result shows each non-empty group in rank order: its heading, its comparisons in a list the
-    // heading expands, then the summary paragraphs that cite its axes, so a group the summary does not cite
-    // still shows its comparisons. The list sits outside the narrative section, whose evidence styles would
-    // otherwise apply to the comparisons' evidence.
     const groupBlocks = [];
-    // An article summary has no groups: its paragraphs come first, and every comparison sits in one
-    // expandable list after the caveats, with one heading per non-empty group.
     let comparisons;
     if (!profile.groupedSummary) {
-        sections.forEach((section, index) => narrative.appendChild(renderNarrativeSection(section, rows, result.rows, commentsById, index, terms)));
+        (synthesis ? synthesis.sections : []).forEach((section, index) => narrative.appendChild(renderNarrativeSection(section, rows, result.rows, commentsById, index, terms)));
         comparisons = makeElement('details');
         comparisons.id = 'explore-comparisons';
         comparisons.appendChild(makeElement('summary', { text: `Explore comparisons (${rows.length})` }));
@@ -6581,34 +6492,10 @@ function renderResults(result, comments) {
     for (const group of ROW_GROUPS) {
         const members = rows.filter(row => row.group === group.key);
         if (members.length === 0) continue;
-        const axes = members.map(row => renderAxis(row, commentsById, terms));
-        if (!profile.groupedSummary) {
-            comparisons.appendChild(makeElement('h3', { className: 'row-group', text: `${group.title} (${members.length})` }));
-            comparisons.append(...axes);
-            continue;
-        }
-        // The group heading, with the comparison count, opens and closes the group's comparisons, which
-        // appear between the heading and the group's summary paragraphs.
-        const groupComparisons = makeElement('div');
-        groupComparisons.id = `group-comparisons-${group.key}`;
-        groupComparisons.hidden = true;
-        groupComparisons.append(...axes);
-        const toggle = makeElement('button', { className: 'group-toggle', text: `${group.title} (${members.length})` });
-        toggle.type = 'button';
-        toggle.setAttribute('aria-expanded', 'false');
-        toggle.setAttribute('aria-controls', groupComparisons.id);
-        toggle.addEventListener('click', () => {
-            const opening = groupComparisons.hidden;
-            groupComparisons.hidden = !opening;
-            toggle.setAttribute('aria-expanded', String(opening));
-        });
-        const heading = makeElement('h3', { className: 'group-heading' });
-        heading.appendChild(toggle);
-        const groupNarrative = makeElement('section', { className: 'narrative' });
-        sections.forEach((section, index) => {
-            if (section.group === group.key) groupNarrative.appendChild(renderNarrativeSection(section, rows, result.rows, commentsById, index, terms));
-        });
-        groupBlocks.push(heading, groupComparisons, groupNarrative);
+        const blocks = [makeElement('h3', { className: 'row-group', text: `${group.title} (${members.length})` }),
+            ...members.map(row => renderAxis(row, commentsById, terms))];
+        if (profile.groupedSummary) groupBlocks.push(...blocks);
+        else comparisons.append(...blocks);
     }
     if (result.stats.axesBelowFloor > 0) {
         comparisons.appendChild(makeElement('p', { text: axesBelowFloorText(result.stats.axesBelowFloor) }));
@@ -6627,7 +6514,7 @@ function renderResults(result, comments) {
         narrative.prepend(makeElement('p', { text: 'Complete text processed · ' + voices + ' textual voices · ' + result.comments.length + ' counted passages. Counts reflect the primary speaker and directly attributed voices in this selected text, not a survey.' }));
         caveats.appendChild(makeElement('p', { text: 'Attribution and semantic reviews are model judgments. Unresolved speech and reported paraphrases are shown separately and do not count as direct testimony. Quotation authenticity and factual claims have not been checked.' }));
     }
-    // The question form sits between the discussion and Scope and caveats, so a question follows the summary it asks about.
+    // The question form sits between the discussion and Scope and caveats, so a question follows what it asks about.
     elements.results.replaceChildren(narrative, ...groupBlocks);
     elements.resultsEnd.replaceChildren(caveats, comparisons, ...(profile.prepared ? [renderArticleSource(result.article)] : []));
     renderUnverifiedAxes(result.unverifiedAxes || [], commentsById);
