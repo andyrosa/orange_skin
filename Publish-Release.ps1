@@ -9,6 +9,7 @@ $ErrorActionPreference = 'Stop'
 $ReleaseBranch = 'main'
 $RemoteName = 'origin'
 $ReleaseFile = 'orange_skin.html'
+$PublicationDirectory = '.publication'
 $TagPrefix = 'release-'
 
 function Invoke-Git {
@@ -51,16 +52,26 @@ $tag = $TagPrefix + [DateTimeOffset]::Now.ToString("yyyyMMdd'T'HHmmsszzz", $inva
 $commitTime = [DateTimeOffset]::Parse((Invoke-Git @('show', '-s', '--format=%cI', $localCommit)), $invariant)
 $commitTimeUtc = $commitTime.UtcDateTime.ToString("yyyy-MM-dd'T'HH:mm:ss'Z'", $invariant)
 
+# The release attaches a copy of the page whose build line names the release; the committed page stays unstamped.
+# The path is relative to the repository root, where git gh runs the GitHub CLI.
+$stampedPage = "$PublicationDirectory/$ReleaseFile"
+New-Item -ItemType Directory -Force -Path (Join-Path $PSScriptRoot $PublicationDirectory) | Out-Null
+& node (Join-Path $PSScriptRoot 'scripts\stamp.js') "--out=$(Join-Path $PSScriptRoot $stampedPage)" "--release=$tag"
+$exitCode = $LASTEXITCODE
+if ($exitCode -ne 0) {
+    throw "node scripts\stamp.js failed with exit code $exitCode."
+}
+
 Write-Output "Tagging $localCommit as $tag..."
 Invoke-Git @('tag', $tag, $localCommit) | Out-Null
 Invoke-Git @('push', $RemoteName, "refs/tags/$tag") | Out-Null
 
 # git gh is a git alias that runs the GitHub CLI with the GitHub account of this repository.
-Invoke-Git @('gh', 'release', 'create', $tag, $ReleaseFile, '--verify-tag', '--title', "Orange Skin $tag",
+Invoke-Git @('gh', 'release', 'create', $tag, $stampedPage, '--verify-tag', '--title', "Orange Skin $tag",
     '--notes', "$ReleaseFile at commit $localCommit, committed $commitTimeUtc.") | Out-Null
 
 $release = (Invoke-Git @('gh', 'release', 'view', $tag, '--json', 'url,assets')) -join "`n" | ConvertFrom-Json
-$localBytes = (Get-Item -LiteralPath (Join-Path $PSScriptRoot $ReleaseFile)).Length
+$localBytes = (Get-Item -LiteralPath (Join-Path $PSScriptRoot $stampedPage)).Length
 $assets = @($release.assets)
 if ($assets.Count -ne 1 -or $assets[0].name -ne $ReleaseFile -or $assets[0].size -ne $localBytes) {
     throw "Release $tag ($($release.url)) does not hold exactly $ReleaseFile of $localBytes bytes; it holds: $(@($assets | ForEach-Object { "$($_.name) ($($_.size) bytes)" }) -join ', ')"
