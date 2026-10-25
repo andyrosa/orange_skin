@@ -153,6 +153,7 @@ Counts are recomputed from verified rows, never supplied by the model. All compa
 - `.gitattributes`: makes every text file LF on every platform; its comment explains why the policy hashes do not depend on it.
 
 ## User interface
+- `Publish-Release.ps1`: publishes a GitHub release of `orange_skin.html` at the current commit of `main`. The website does not depend on a release, because every push to `main` deploys the page. The script refuses to start unless the current branch is `main`, the working tree has no uncommitted files, `main` matches `origin/main`, and `node scripts/csp.js` passes. It then tags the commit `release-YYYYMMDDTHHMMSS+HHMM` or `release-YYYYMMDDTHHMMSS-HHMM`, the local time and UTC offset, pushes the tag, creates the release with `orange_skin.html` attached and the full commit SHA and the commit time in UTC as its notes, and checks that the release holds the file. It runs the GitHub CLI through `git gh`, a git alias that must select the GitHub account of the repository. Every release stays; the script deletes none.
 
 The app is hosted at https://andyrosa.github.io/orange_skin/.
 The public source repository is https://github.com/andyrosa/orange_skin.
