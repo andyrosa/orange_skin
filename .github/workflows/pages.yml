@@ -35,7 +35,7 @@ jobs:
       - name: Prepare website
         run: |
           mkdir _site
-          cp hn_polarization.html _site/index.html
+          cp orange_skin.html _site/index.html
       - name: Configure GitHub Pages
         uses: actions/configure-pages@v5
       - name: Upload website

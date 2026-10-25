@@ -4,7 +4,7 @@
 const fs = require('node:fs');
 const path = require('node:path');
 
-const HTML_PATH = path.join(__dirname, '..', 'hn_polarization.html');
+const HTML_PATH = path.join(__dirname, '..', 'orange_skin.html');
 const KEY_ENV_NAME = 'OPENROUTER_API_KEY';
 const CORE_SCRIPT_PATTERN = /<script id="core">([\s\S]*?)<\/script>/;
 

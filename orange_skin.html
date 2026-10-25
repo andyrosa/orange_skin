@@ -3,8 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-fnPsBaocjtptBKeFt0R7aRNsylrZLautmfDyYIkUpIA=' 'sha256-4nBQ7J622VETk7TbN/LTA9i/5I8pKuDtZT5BJklngeg='; style-src 'sha256-d9ENuiBcLwdvCXnUpn2GZYUtOGP08yAGkYestI0J46w='; connect-src https://openrouter.ai https://hn.algolia.com https://hacker-news.firebaseio.com https://api.keenable.ai; img-src data:; font-src data:; base-uri 'none'; form-action 'none'">
-<title>Orange Split - For and Against on Hacker News</title>
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-Jf8Zo/SGMEiefBlzQljH9j8euiaJI1Lr1odxcrDzSwo=' 'sha256-7tY4fBUuFVt3plAZ3SsSAoHd57pxpJ7QaK3YmH+xEfw='; style-src 'sha256-d9ENuiBcLwdvCXnUpn2GZYUtOGP08yAGkYestI0J46w='; connect-src https://openrouter.ai https://hn.algolia.com https://hacker-news.firebaseio.com https://api.keenable.ai; img-src data:; font-src data:; base-uri 'none'; form-action 'none'">
+<title>Orange Skin - Hacker News Skimmer</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 32 32%27%3E%3Crect width=%2732%27 height=%2732%27 fill=%27%23ff6600%27/%3E%3Ctext x=%2716%27 y=%2721%27 font-family=%27sans-serif%27 font-weight=%27bold%27 font-size=%2714%27 text-anchor=%27middle%27 fill=%27white%27%3EOS%3C/text%3E%3C/svg%3E">
 <style>
 [hidden] { display: none !important; }
@@ -295,7 +295,7 @@ button { margin-right: 0.5rem; }
 </style>
 </head>
 <body>
-<h1><span class="title-text">Orange Split</span><span class="title-boxes"><label title="The 1990 Macintosh look; untick for a plain page styled as Hacker News is; remembered in this browser"><input id="old-school" type="checkbox"> Old School</label>
+<h1><span class="title-text">Orange Skin</span><span class="title-boxes"><label title="The 1990 Macintosh look; untick for a plain page styled as Hacker News is; remembered in this browser"><input id="old-school" type="checkbox"> Old School</label>
 <label title="Show forecasts, costs, times, cache counts, the model pickers, One-pass analysis, and the share slider; remembered in this browser"><input id="verbose" type="checkbox"> Verbose</label></span></h1>
 <div class="row thread-controls">
 <span class="story-scope" role="group" aria-label="Story source">
@@ -444,7 +444,7 @@ const FRONT_PAGE_SIZE = 30;
 const FRONT_PAGE_COUNT = 3;
 
 const CONSTANTS = Object.freeze({
-    APP_NAME: 'Orange Split',
+    APP_NAME: 'Orange Skin',
     HN_ITEM_URL: 'https://hn.algolia.com/api/v1/items/',
     HN_CURRENT_ITEM_URL: 'https://hacker-news.firebaseio.com/v0/item/',
     HN_ITEM_PAGE_URL: 'https://news.ycombinator.com/item?id=',
@@ -455,20 +455,20 @@ const CONSTANTS = Object.freeze({
     OPENROUTER_MODELS_URL: 'https://openrouter.ai/api/v1/models',
     OPENROUTER_AUTH_URL: 'https://openrouter.ai/auth',
     OPENROUTER_KEY_EXCHANGE_URL: 'https://openrouter.ai/api/v1/auth/keys',
-    PKCE_VERIFIER_STORAGE_KEY: 'openrouter_pkce_verifier',
-    STORAGE_KEY_OPENROUTER: 'openrouter_api_key',
-    STORAGE_KEY_KEENABLE: 'hn_polarization_keenable_key',
-    STORAGE_KEY_ARTICLE_SUMMARY_CAP: 'article_summary_cap_usd',
-    STORAGE_KEY_QUESTION_CAP: 'question_cap_usd',
-    STORAGE_KEY_OLD_SCHOOL: 'hn_polarization_old_school',
-    STORAGE_KEY_VERBOSE: 'hn_polarization_verbose',
-    STORAGE_KEY_QUELCHED: 'hn_polarization_quelched',
-    STORAGE_KEY_QUESTIONS: 'hn_polarization_questions',
-    STORAGE_KEY_PASTED_PAGES: 'hn_polarization_pasted_pages',
-    STORAGE_KEY_KEENABLE_PAGES: 'hn_polarization_keenable_pages',
-    CACHE_KEY_PREFIX: 'hn_polarization_cache:',
-    THREAD_KEY_PREFIX: 'hn_polarization_thread:',
-    RESULT_KEY_PREFIX: 'hn_polarization_result:',
+    PKCE_VERIFIER_STORAGE_KEY: 'orange_skin_openrouter_pkce_verifier',
+    STORAGE_KEY_OPENROUTER: 'orange_skin_openrouter_api_key',
+    STORAGE_KEY_KEENABLE: 'orange_skin_keenable_key',
+    STORAGE_KEY_ARTICLE_SUMMARY_CAP: 'orange_skin_article_summary_cap_usd',
+    STORAGE_KEY_QUESTION_CAP: 'orange_skin_question_cap_usd',
+    STORAGE_KEY_OLD_SCHOOL: 'orange_skin_old_school',
+    STORAGE_KEY_VERBOSE: 'orange_skin_verbose',
+    STORAGE_KEY_QUELCHED: 'orange_skin_quelched',
+    STORAGE_KEY_QUESTIONS: 'orange_skin_questions',
+    STORAGE_KEY_PASTED_PAGES: 'orange_skin_pasted_pages',
+    STORAGE_KEY_KEENABLE_PAGES: 'orange_skin_keenable_pages',
+    CACHE_KEY_PREFIX: 'orange_skin_cache:',
+    THREAD_KEY_PREFIX: 'orange_skin_thread:',
+    RESULT_KEY_PREFIX: 'orange_skin_result:',
     COMMENT_FRAME_CHARS: 48, // the id line and the separators around a comment in a prompt
     TEMPERATURE: 0,
     MAX_ATTEMPTS: 4,
@@ -4044,11 +4044,11 @@ document.documentElement.classList.toggle(VERBOSE_CLASS, localStorage.getItem(CO
 // update it after the transaction commits, so failed imports never expose partial entries.
 async function openCacheStorage() {
     const db = await new Promise((resolve, reject) => {
-        const request = indexedDB.open('hn_polarization_cache', 1);
+        const request = indexedDB.open('orange_skin_cache', 1);
         request.onupgradeneeded = () => request.result.createObjectStore('entries');
         request.onsuccess = () => resolve(request.result);
         request.onerror = () => reject(request.error);
-        request.onblocked = () => reject(new Error('Close other Orange Split tabs and reload to open the cache.'));
+        request.onblocked = () => reject(new Error('Close other Orange Skin tabs and reload to open the cache.'));
     });
     db.onversionchange = () => db.close();
     const entries = new Map();
@@ -4360,7 +4360,7 @@ let importActive = false;
 let loadedThread = null;
 let loadedSnapshotAt = null;
 
-const APP_TITLE = `${CONSTANTS.APP_NAME} - For and Against on Hacker News`;
+const APP_TITLE = `${CONSTANTS.APP_NAME} - Hacker News Skimmer`;
 const RESULT_CACHE_VERSION = 10;
 
 // A run's total cost as the status shows it.
@@ -4917,7 +4917,7 @@ function downloadCacheExport() {
     const url = URL.createObjectURL(new Blob([JSON.stringify(payload)], { type: 'application/json' }));
     const link = makeElement('a');
     link.href = url;
-    link.download = `orange-split-cache-${timestamp}.json`;
+    link.download = `orange-skin-cache-${timestamp}.json`;
     link.click();
     setTimeout(() => URL.revokeObjectURL(url), 0);
 }

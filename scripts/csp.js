@@ -1,4 +1,4 @@
-// Content-Security-Policy for hn_polarization.html.
+// Content-Security-Policy for orange_skin.html.
 // The page's policy names the SHA-256 hash of each inline block (the two script blocks and the style
 // block), so an edit to any of them changes the hash the browser expects, and a stale policy makes the
 // browser refuse to run the block. This script recomputes the policy:

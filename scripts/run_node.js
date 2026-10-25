@@ -1,4 +1,4 @@
-// Headless runner: executes the same core pipeline as hn_polarization.html from Node.
+// Headless runner: executes the same core pipeline as orange_skin.html from Node.
 // Usage: node scripts/run_node.js --thread=49525378 [--key=sk-or-...] [--out=result.json] [--thread-file=path] [--cache-dir=path]
 //        [--config-file=path] [--extraction=<key>] [--consolidation=<key>] [--scoring=<key>] [--summary=<key>] [--singleCall=<key>] [--model=id] [--temperature=0] [--seed=12345] [--concurrency=30]
 //        [--share=<percent>] [--budget=<usd>]
