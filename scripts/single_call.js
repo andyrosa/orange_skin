@@ -61,7 +61,6 @@ function handlersOf(single, secondPassByModel) {
         extract: () => ({ candidates: single.candidates }),
         consolidate: lib.fixedAxes(single.axes),
         score: call => (secondPassByModel && call.meta.passIndex === 1 ? MODEL : requestStances(call)),
-        synthesize: lib.noSummary,
     };
 }
 

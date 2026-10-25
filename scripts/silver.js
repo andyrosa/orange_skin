@@ -7,8 +7,7 @@
 //      other's best match by shared candidates; it keeps the shared candidates.
 //   3. Each model scores every comment against the silver axes. A silver stance is a stance both models
 //      gave; a cell neither model gave any stance in any pass has no stance; every other cell is disputed.
-//   4. The silver rows are the page's rows for the silver stances. Each model writes a summary of them; an
-//      axis both summaries cite is a featured axis.
+//   4. The silver rows are the page's rows for the silver stances.
 // Every model call is cached under outputs/silver/cache, so a rerun continues where the last run stopped.
 // The result is written to data/silver.json.
 const fs = require('node:fs');
@@ -28,7 +27,7 @@ async function buildPool(thread, run) {
     const batches = core.makeExtractBatches(thread.comments, core.DEFAULT_CONFIG.extractBatchChars);
     const batchOfComment = new Map(batches.flatMap((batch, batchIndex) => batch.map(comment => [comment.id, batchIndex])));
     const perModel = await Promise.all(SILVER_MODELS.map(async silverModel => {
-        const result = await run(silverModel, `extract ${silverModel.key}`, { extract: MODEL, consolidate: lib.oneAxisOfAllCandidates, score: lib.noStances, synthesize: lib.noSummary });
+        const result = await run(silverModel, `extract ${silverModel.key}`, { extract: MODEL, consolidate: lib.oneAxisOfAllCandidates, score: lib.noStances });
         return result.candidates.map(candidate => {
             const batchIndexes = new Set([...candidate.commentsA, ...candidate.commentsB].map(commentId => batchOfComment.get(commentId)));
             if (batchIndexes.size > 1) throw new Error(`candidate "${candidate.statementA}" cites comments of ${batchIndexes.size} batches`);
@@ -44,7 +43,7 @@ async function buildPool(thread, run) {
 async function buildAxes(thread, pool, run) {
     const commentsById = core.indexCommentsById(thread.comments);
     const partitions = await Promise.all(SILVER_MODELS.map(async silverModel => {
-        const result = await run(silverModel, `consolidate ${silverModel.key}`, { extract: lib.fixedCandidates(pool), consolidate: MODEL, score: lib.noStances, synthesize: lib.noSummary });
+        const result = await run(silverModel, `consolidate ${silverModel.key}`, { extract: lib.fixedCandidates(pool), consolidate: MODEL, score: lib.noStances });
         if (result.candidates.length !== pool.length || !result.candidates.every((candidate, index) => sameStatements(candidate, pool[index]))) {
             throw new Error('the pipeline did not reproduce the pool in pool order');
         }
@@ -80,7 +79,7 @@ async function buildAxes(thread, pool, run) {
 // Step 3. Each model's stances on the silver axes, then the stances both models agree on.
 async function buildStances(thread, pool, axes, run) {
     const perModel = await Promise.all(SILVER_MODELS.map(async silverModel => {
-        const result = await run(silverModel, `score ${silverModel.key}`, { extract: lib.fixedCandidates(pool), consolidate: lib.fixedAxes(axes), score: MODEL, synthesize: lib.noSummary });
+        const result = await run(silverModel, `score ${silverModel.key}`, { extract: lib.fixedCandidates(pool), consolidate: lib.fixedAxes(axes), score: MODEL });
         if (result.axes.length !== axes.length) throw new Error(`scoring saw ${result.axes.length} axes, not the ${axes.length} silver axes`);
         return lib.stancesOfResult(result);
     }));
@@ -98,20 +97,13 @@ async function buildStances(thread, pool, axes, run) {
         agreedPerModel: Object.fromEntries(SILVER_MODELS.map((silverModel, index) => [silverModel.key, perModel[index].agreed.size])) };
 }
 
-// Step 4. The rows of the silver stances, and each model's summary of them.
-async function buildRowsAndSummaries(thread, pool, axes, silver, run) {
+// Step 4. The rows of the silver stances. Every stage replays the reference, so no model is called.
+async function buildRows(thread, pool, axes, silver, run) {
     const table = lib.silverStanceTable(silver).stances;
-    const results = await Promise.all(SILVER_MODELS.map(silverModel => run(silverModel, `summarize ${silverModel.key}`,
-        { extract: lib.fixedCandidates(pool), consolidate: lib.fixedAxes(axes), score: lib.fixedStances(table), synthesize: MODEL })));
-    const rows = results[0].rows.map(row => ({ axisId: row.axisId, rank: row.rank, group: row.group, statementA: row.statementA, statementB: row.statementB,
+    const result = await run(SILVER_MODELS[0], 'rows', { extract: lib.fixedCandidates(pool), consolidate: lib.fixedAxes(axes), score: lib.fixedStances(table) });
+    const rows = result.rows.map(row => ({ axisId: row.axisId, rank: row.rank, group: row.group, statementA: row.statementA, statementB: row.statementB,
         countA: row.countA, countB: row.countB, countM: row.countM, countC: row.countC, people: row.authors }));
-    const summaries = Object.fromEntries(SILVER_MODELS.map((silverModel, index) => {
-        if (!results[index].synthesis) throw new Error(`${silverModel.key} wrote no valid summary: ${results[index].synthesisError}`);
-        return [silverModel.key, results[index].synthesis];
-    }));
-    const cited = Object.values(summaries).map(synthesis => new Set(lib.summaryMarkers(synthesis).map(marker => marker.axisId)));
-    const featuredAxes = [...cited[0]].filter(axisId => cited[1].has(axisId)).sort((left, right) => left - right);
-    return { rows, summaries, featuredAxes };
+    return { rows };
 }
 
 async function main() {
@@ -137,14 +129,14 @@ async function main() {
         candidates: pool, partitions: Object.fromEntries(SILVER_MODELS.map((silverModel, index) => [silverModel.key, partitions[index].axes.map(axis => axis.candidates)])),
         axes, disputedAxes, stances, disputedCells,
     };
-    Object.assign(silver, await buildRowsAndSummaries(thread, pool, axes, silver, run));
+    Object.assign(silver, await buildRows(thread, pool, axes, silver, run));
     silver.cost = Object.fromEntries(core.STAGE_ORDER.map(stageKey => [stageKey, meter.stage(stageKey)]));
     silver.builtAt = new Date().toISOString();
     fs.writeFileSync(lib.SILVER_FILE, JSON.stringify(silver), 'utf8');
     const groups = {};
     for (const row of silver.rows) groups[row.group] = (groups[row.group] || 0) + 1;
     const totalUsd = core.STAGE_ORDER.reduce((sum, stageKey) => sum + silver.cost[stageKey].usd, 0);
-    console.log(`rows: ${silver.rows.length} (${JSON.stringify(groups)}); featured axes ${JSON.stringify(silver.featuredAxes)}`);
+    console.log(`rows: ${silver.rows.length} (${JSON.stringify(groups)})`);
     console.log(`wrote ${lib.SILVER_FILE}; the reference cost $${totalUsd.toFixed(2)} in all, $${ledger.spentUsd.toFixed(2)} of it in this run`);
 }
 

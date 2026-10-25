@@ -25,7 +25,7 @@ const SILVER_MODELS = Object.freeze([
     Object.freeze({ key: 'opus55high', name: 'Claude Opus 5.5', effort: 'high', model: 'anthropic/claude-opus-5.5', sampling: null, reasoning: Object.freeze({ effort: 'high' }) }),
 ]);
 // Output ceilings of the silver models by stage key. Reasoning tokens count against the ceiling.
-const SILVER_MAX_TOKENS = Object.freeze({ extract: 64000, consolidate: 128000, score: 64000, synthesize: 32000 });
+const SILVER_MAX_TOKENS = Object.freeze({ extract: 64000, consolidate: 128000, score: 64000 });
 const JUDGE_MAX_TOKENS = 64000;
 // Decimal places of the shares and seconds stored in results.
 const PRECISION_DIGITS = 4;
@@ -170,8 +170,8 @@ function makeMeter() {
 
 const FIXED_USAGE = Object.freeze({ promptTokens: 0, completionTokens: 0, cost: 0 });
 
-// Runs the page pipeline on the thread. handlers maps each stage key (extract, consolidate, score,
-// synthesize) to MODEL or to a function returning that call's fixed response, or MODEL for that call.
+// Runs the page pipeline on the thread. handlers maps each stage key (extract, consolidate, score) to MODEL or
+// to a function returning that call's fixed response, or MODEL for that call.
 async function runStages({ thread, config, handlers, modelCallChat, label }) {
     const callChat = async call => {
         const handler = handlers[call.stage];
@@ -183,9 +183,8 @@ async function runStages({ thread, config, handlers, modelCallChat, label }) {
     let lastLine = '';
     return core.runPipeline({
         thread,
-        // The benchmarks measure the analysis, so the linked article's summary is left out. A page run writes no
-        // thread summary; a run here writes one unless its handlers refuse it (noSummary).
-        config: { ...config, budgetUsd: Number.MAX_SAFE_INTEGER, articleSummary: false, threadSummary: handlers.synthesize !== noSummary },
+        // The benchmarks measure the analysis, so the linked article's summary is left out.
+        config: { ...config, budgetUsd: Number.MAX_SAFE_INTEGER, articleSummary: false },
         callChat,
         onProgress: update => {
             const line = `${label}: ${update.stage} ${update.done}/${update.total}`;
@@ -232,10 +231,6 @@ function noStances() {
     return { stances: [] };
 }
 
-function noSummary() {
-    throw new Error('summary not requested');
-}
-
 // Reading results -----------------------------------------------------------
 
 // The stances of a pipeline result in each axis's own orientation (rows put the larger side first):
@@ -259,11 +254,6 @@ function stancesOfResult(result) {
         for (const comment of axis.unverifiedComments) unsure.add(core.stanceKey(comment.commentId, axis.id));
     }
     return { agreed, unsure };
-}
-
-// The (axisId, stance) markers a summary cites, in order.
-function summaryMarkers(synthesis) {
-    return synthesis.sections.flatMap(section => core.synthesisTextParts(section.text).filter(part => part.axisId !== undefined));
 }
 
 // Metrics -------------------------------------------------------------------
@@ -475,17 +465,6 @@ const MATCH_SCHEMA = { name: 'match_candidates', schema: { type: 'object', addit
     properties: { matches: { type: 'array', items: { type: 'object', additionalProperties: false, required: ['candidate', 'axis'],
         properties: { candidate: { type: 'integer' }, axis: { type: 'integer' } } } } } } };
 
-const FAITHFUL_SYSTEM_PROMPT = `You check a summary of a Hacker News discussion against the evidence it was written from. The submission title is: "{title}".
-
-The evidence lists axes. Each axis has two rival statements, A and B, labels the application computed from its counts (a group: unanimous, agrees, leans, split, or neither; the majority side; the sides anyone took; and whether few people took a side), and comment excerpts. The summary cites one side of one axis with a marker such as [[axis:3:A]], placed immediately after the words that state that side. The application replaces each marker with the number of people on that side.
-
-For each marker in the summary, decide whether the words it follows are faithful. They are faithful when all of these hold: they state the marked side of the marked axis, as the axis's statement and excerpts support it; they add no claim that the evidence does not support; and they present the weight of the side consistently with the labels (a majority as a majority, a minority as a minority, a split as a disagreement, and an axis with few people as tentative).
-
-Return exactly one entry per marker, in the order the markers appear, as JSON matching the schema and nothing else.`;
-const FAITHFUL_SCHEMA = { name: 'check_summary', schema: { type: 'object', additionalProperties: false, required: ['markers'],
-    properties: { markers: { type: 'array', items: { type: 'object', additionalProperties: false, required: ['axisId', 'stance', 'faithful'],
-        properties: { axisId: { type: 'integer' }, stance: { type: 'string', enum: ['A', 'B'] }, faithful: { type: 'boolean' } } } } } } };
-
 async function judgeCall(modelCallChat, silverModel, stage, systemPrompt, title, userContent, schema) {
     const call = { stage, model: silverModel.model, sampling: silverModel.sampling, reasoning: silverModel.reasoning, maxTokens: JUDGE_MAX_TOKENS,
         messages: [{ role: 'system', content: systemPrompt.replace('{title}', title) }, { role: 'user', content: userContent }], schema };
@@ -514,21 +493,6 @@ async function matchCandidates({ modelCallChat, title, axes, candidates }) {
     });
 }
 
-// Each silver model checks every marker of the summary. Returns Map("axisId:stance" -> true when both
-// found it faithful, false when both found it unfaithful, null when they differ or either gave no answer).
-async function checkSummary({ modelCallChat, title, evidenceContent, synthesis }) {
-    const userContent = JSON.stringify({ evidence: JSON.parse(evidenceContent), summary: synthesis.sections.map(section => section.text) });
-    const answers = await Promise.all(SILVER_MODELS.map(async silverModel => {
-        const json = await judgeCall(modelCallChat, silverModel, 'checkSummary', FAITHFUL_SYSTEM_PROMPT, title, userContent, FAITHFUL_SCHEMA);
-        return new Map((json.markers || []).filter(marker => typeof marker.faithful === 'boolean').map(marker => [`${marker.axisId}:${marker.stance}`, marker.faithful]));
-    }));
-    return new Map(summaryMarkers(synthesis).map(marker => {
-        const key = `${marker.axisId}:${marker.stance}`;
-        const [first, second] = answers.map(byMarker => byMarker.get(key));
-        return [key, first === undefined || second === undefined || first !== second ? null : first];
-    }));
-}
-
 // Silver file -----------------------------------------------------------------
 
 function readSilver() {
@@ -548,8 +512,8 @@ module.exports = {
     core, REPO_ROOT, SILVER_FILE, BENCHMARK_FILE, CACHE_DIRECTORY, SILVER_MODELS, MODEL,
     readArgument, readNumberArgument, requireApiKey, silverConfig, loadThread, checkSilverSnapshot, readKeyList, readStoredResults, writeStoredResults,
     makeModelCallChat, runCallChat, readRepeats, makeMeter, runStages,
-    fixedCandidates, fixedAxes, oneAxisOfAllCandidates, fixedStances, noStances, noSummary,
-    stancesOfResult, summaryMarkers, agreementOf, consolidationAgreement, scoringAgreement, runSpread, runSummary, rounded, percent, failedGrade, FAILURE_MESSAGE_CHARS,
+    fixedCandidates, fixedAxes, oneAxisOfAllCandidates, fixedStances, noStances,
+    stancesOfResult, agreementOf, consolidationAgreement, scoringAgreement, runSpread, runSummary, rounded, percent, failedGrade, FAILURE_MESSAGE_CHARS,
     wholeRunShape, gradeWholeRun, runLatencySeconds,
-    matchCandidates, checkSummary, readSilver, silverStanceTable,
+    matchCandidates, readSilver, silverStanceTable,
 };

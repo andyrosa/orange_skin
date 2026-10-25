@@ -26,7 +26,7 @@ const RESULT_FILE = path.join(lib.REPO_ROOT, 'data', 'pipeline-benchmark.json');
 const DEFAULT_BUDGET_USD = 20;
 const SILVER_THREAD_ID = 22866284;
 const LARGE_THREAD_ID = 44163063;
-const PIPELINE_HANDLERS = Object.freeze({ extract: MODEL, consolidate: MODEL, score: MODEL, synthesize: MODEL });
+const PIPELINE_HANDLERS = Object.freeze({ extract: MODEL, consolidate: MODEL, score: MODEL });
 const SPREAD_FIELDS = Object.freeze(['axes', 'rowsWithEnoughPeople', 'stances', 'agreement', 'precision', 'recall', 'usd', 'seconds']);
 // Where scripts/run_node.js kept the calls of a configuration's first run on a thread.
 const firstRunDirectory = folder => threadId => path.join(lib.REPO_ROOT, 'outputs', `${folder}-${threadId}`, 'cache');
@@ -58,7 +58,7 @@ async function runOnce({ keys, thread, silver, modelCallChat, concurrency, label
         modelCallChat: meter.wrap(modelCallChat), label });
     const graded = silver === null ? { ...lib.wholeRunShape(result), agreement: null, precision: null, recall: null } : lib.gradeWholeRun(result, silver);
     return { ...graded, usd: meter.calls.reduce((sum, call) => sum + call.usd, 0), seconds: lib.runLatencySeconds(meter.calls, concurrency),
-        calls: meter.calls.length, cachedCalls: result.stats.cachedCalls, summaryFailed: result.synthesis === null };
+        calls: meter.calls.length, cachedCalls: result.stats.cachedCalls };
 }
 
 async function measure({ configKey, threadId, repeats, silver, apiKey, ledger, concurrency }) {

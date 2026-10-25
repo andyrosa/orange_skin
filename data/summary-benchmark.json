@@ -1,0 +1,132 @@
+{
+ "pages": [
+  {
+   "threadId": 22866284,
+   "title": "The Wolfram Physics Project",
+   "url": "https://writings.stephenwolfram.com/2020/04/finally-we-may-have-a-path-to-the-fundamental-theory-of-physics-and-its-beautiful/",
+   "chars": 50072
+  },
+  {
+   "threadId": 44163063,
+   "title": "My AI skeptic friends are all nuts",
+   "url": "https://fly.io/blog/youre-all-nuts/",
+   "chars": 16489
+  },
+  {
+   "threadId": 29845208,
+   "title": "My First Impressions of Web3",
+   "url": "https://moxie.org/2022/01/07/web3-first-impressions.html",
+   "chars": 23825
+  },
+  {
+   "threadId": 16582136,
+   "title": "Stephen Hawking has died",
+   "url": "http://www.bbc.com/news/uk-43396008",
+   "chars": 11401
+  },
+  {
+   "threadId": 47939579,
+   "title": "Ghostty is leaving GitHub",
+   "url": "https://mitchellh.com/writing/ghostty-leaving-github",
+   "chars": 4416
+  }
+ ],
+ "results": {
+  "geminiFlash": {
+   "usd": 0.007807950000000001,
+   "seconds": 8.572,
+   "summaries": 5,
+   "failedSummaries": 0,
+   "notFetched": 0,
+   "measuredAt": "2026-10-25T16:21:12.627Z"
+  },
+  "sonnet5": {
+   "usd": 0.020699199999999997,
+   "seconds": 4.8274,
+   "summaries": 5,
+   "failedSummaries": 0,
+   "notFetched": 0,
+   "measuredAt": "2026-10-25T16:21:47.261Z"
+  },
+  "astraLow": {
+   "usd": 0.0821675,
+   "seconds": 4.4702,
+   "summaries": 5,
+   "failedSummaries": 0,
+   "notFetched": 0,
+   "measuredAt": "2026-10-25T16:22:09.627Z"
+  },
+  "glm53": {
+   "usd": 0.0019085048000000004,
+   "seconds": 3.711,
+   "summaries": 5,
+   "failedSummaries": 0,
+   "notFetched": 0,
+   "measuredAt": "2026-10-25T16:22:28.203Z"
+  },
+  "opus5": {
+   "usd": 0.05054565000000001,
+   "seconds": 5.8498,
+   "summaries": 5,
+   "failedSummaries": 0,
+   "notFetched": 0,
+   "measuredAt": "2026-10-25T16:22:57.469Z"
+  },
+  "solLow": {
+   "usd": 0.033166999999999995,
+   "seconds": 3.9366,
+   "summaries": 5,
+   "failedSummaries": 0,
+   "notFetched": 0,
+   "measuredAt": "2026-10-25T16:23:17.172Z"
+  },
+  "lunaMax": {
+   "usd": 0.0022276299999999995,
+   "seconds": 5.1886,
+   "summaries": 5,
+   "failedSummaries": 0,
+   "notFetched": 0,
+   "measuredAt": "2026-10-25T16:23:43.126Z"
+  },
+  "fableLow": {
+   "usd": 0.0997567,
+   "seconds": 8.4586,
+   "summaries": 5,
+   "failedSummaries": 0,
+   "notFetched": 0,
+   "measuredAt": "2026-10-25T16:24:25.430Z"
+  },
+  "sol6Low": {
+   "usd": 0.016337499999999998,
+   "seconds": 2.6176,
+   "summaries": 5,
+   "failedSummaries": 0,
+   "notFetched": 0,
+   "measuredAt": "2026-10-25T16:24:38.535Z"
+  },
+  "opus55": {
+   "usd": 0.039473959999999995,
+   "seconds": 5.1812,
+   "summaries": 5,
+   "failedSummaries": 0,
+   "notFetched": 0,
+   "measuredAt": "2026-10-25T16:25:04.452Z"
+  },
+  "sol61Low": {
+   "usd": 0.016415500000000003,
+   "seconds": 4.828,
+   "summaries": 5,
+   "failedSummaries": 0,
+   "notFetched": 0,
+   "measuredAt": "2026-10-25T16:25:28.607Z"
+  },
+  "sonnet55": {
+   "usd": 0.01943098,
+   "seconds": 3.6078,
+   "summaries": 5,
+   "failedSummaries": 0,
+   "notFetched": 0,
+   "measuredAt": "2026-10-25T16:25:46.656Z"
+  }
+ }
+}
