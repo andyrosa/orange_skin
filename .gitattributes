@@ -1,4 +1,4 @@
-# Every text file is LF in the working tree and in the index, on every platform, whatever core.autocrlf says.
+# Text files are LF in the index; core.autocrlf on each machine decides their working-tree line endings.
 # The Content-Security-Policy hashes in orange_skin.html do not depend on this: the browser converts CRLF to
 # LF while parsing the page, before it hashes an inline block, and scripts/csp.js hashes the same LF text.
-* text=auto eol=lf
+* text=auto
