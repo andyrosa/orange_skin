@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-EWLop79xKOuj/a7EvrciH3sXYg+PODxx7lMx7Fxy8kE=' 'sha256-/F1F39kIpkx2tI8eR5i7KBIY+Gr4+XwfisLR6DNfUyQ='; style-src 'sha256-xUmiXC9vDycMR8S+we8Sm7YyxFVyprweo/Dxi3VQOvc='; connect-src https://openrouter.ai https://hn.algolia.com https://hacker-news.firebaseio.com https://api.keenable.ai; img-src data:; font-src data:; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-EWLop79xKOuj/a7EvrciH3sXYg+PODxx7lMx7Fxy8kE=' 'sha256-/F1F39kIpkx2tI8eR5i7KBIY+Gr4+XwfisLR6DNfUyQ='; style-src 'sha256-UELgq6++bo2ubqr0hxvTXyrBB90cQIrf0/LkOI8/bpU='; connect-src https://openrouter.ai https://hn.algolia.com https://hacker-news.firebaseio.com https://api.keenable.ai; img-src data:; font-src data:; base-uri 'none'; form-action 'none'">
 <title>Orange Skin - Hacker News Skimmer</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 32 32%27%3E%3Crect width=%2732%27 height=%2732%27 fill=%27%23ff6600%27/%3E%3Ctext x=%2716%27 y=%2721%27 font-family=%27sans-serif%27 font-weight=%27bold%27 font-size=%2714%27 text-anchor=%27middle%27 fill=%27white%27%3EOS%3C/text%3E%3C/svg%3E">
 <style>
@@ -145,8 +145,11 @@ input[type="number"] { width: 5em; }
 #story-list li.active .story-detail, #story-list li.active .story-status, #story-list li.active .new { color: var(--paper); }
 #story-list li.preprocessed .story-title { font-weight: bold; }
 .story-option { display: flex; align-items: stretch; padding: 0 0 0 0.5rem; white-space: nowrap; }
-.story-option.header { display: block; padding: 0.35rem 0.5rem; }
-.story-option.header .story-hn-head { float: right; }
+/* The header is a flex row, not a block with "discussion" floated right. When the header text filled its line, as
+   the Quelch, quelched count, and Unquelch did on a phone in Old School (2026-10-25), the float dropped below the
+   header into the first story row, and that row, a flex box, narrowed beside the float and pulled its HN cell left. */
+.story-option.header { align-items: baseline; justify-content: space-between; gap: 0.5rem; padding: 0.35rem 0.5rem; }
+.story-option.header .story-hn-head { flex: none; }
 .story-option.header button { margin-left: 0.5rem; }
 .story-text { flex: 1 1 auto; display: flex; align-items: center; gap: 0.35rem; min-width: 0; padding: 0.35rem 0; }
 .story-title { flex: 0 1 auto; min-width: 4rem; overflow: hidden; text-overflow: ellipsis; }
