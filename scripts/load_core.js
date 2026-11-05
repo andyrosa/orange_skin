@@ -5,7 +5,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 
 const HTML_PATH = path.join(__dirname, '..', 'orange_skin.html');
-const KEY_ENV_NAME = 'OPENROUTER_API_KEY';
+const KEY_ENV_NAME = 'DFC_OPENROUTER_API_KEY';
 const CORE_SCRIPT_PATTERN = /<script id="core">([\s\S]*?)<\/script>/;
 
 function readPage() {

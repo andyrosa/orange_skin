@@ -168,7 +168,7 @@ documentation, scripts, and tests are not included in the website. GitHub Pages 
 use **GitHub Actions** as its publishing source. Deployment can also be started manually
 from the repository's **Actions** tab.
 
-Keep credentials in the browser or the `OPENROUTER_API_KEY` environment variable; never commit them.
+Keep credentials in the browser or the `DFC_OPENROUTER_API_KEY` environment variable; never commit them.
 
 Open `orange_skin.html` in a browser. The tab title names Orange Skin and changes to the loaded article title. Every button sits right after the thing it acts on and appears only when it can do something.
 
@@ -229,7 +229,7 @@ Each verified axis is one line in the body font, with no bar and no colors: stat
 node scripts/run_node.js --thread=49525378 [--key=sk-or-...] [--out=result.json] [--concurrency=30] [--cache-dir=path] [--thread-file=path] [--config-file=path] [--extraction=<key>] [--consolidation=<key>] [--scoring=<key>] [--summary=<key>] [--model=id] [--temperature=0] [--seed=12345] [--share=<percent>] [--budget=<usd>]
 ```
 
-The key comes from `--key` or `OPENROUTER_API_KEY`. `--cache-dir` stores each finished call as a file and reuses it. `--thread-file` reads the thread from that file when it exists, else fetches and saves it, which keeps reruns comparable. `--config-file` is a JSON object of `DEFAULT_CONFIG` overrides; `--extraction`, `--consolidation`, `--scoring`, and `--summary` pick option entries by key, each setting only its own role's stages; `--model`, `--temperature`, and `--seed` apply to every stage; `--share` keeps the top N percent of comments; `--budget` sets the stop.
+The key comes from `--key` or `DFC_OPENROUTER_API_KEY`. `--cache-dir` stores each finished call as a file and reuses it. `--thread-file` reads the thread from that file when it exists, else fetches and saves it, which keeps reruns comparable. `--config-file` is a JSON object of `DEFAULT_CONFIG` overrides; `--extraction`, `--consolidation`, `--scoring`, and `--summary` pick option entries by key, each setting only its own role's stages; `--model`, `--temperature`, and `--seed` apply to every stage; `--share` keeps the top N percent of comments; `--budget` sets the stop.
 
 ## Silver reference and benchmark
 

@@ -5,7 +5,7 @@
 // --singleCall sends one request in place of extraction, consolidation, and scoring, as the page's Single call box does.
 // --share analyzes only the top N percent of comments, the same selection as the page's slider; default 100.
 // --budget stops the run once the spend passes this many dollars; default DEFAULT_CONFIG.budgetUsd.
-// The OpenRouter key comes from --key, else from the OPENROUTER_API_KEY environment variable.
+// The OpenRouter key comes from --key, else from the DFC_OPENROUTER_API_KEY environment variable.
 // --thread-file reads the thread from that file when it exists; otherwise the thread is fetched and saved there.
 //   A live thread gains comments over time, which changes every prompt, so reruns need the same snapshot to hit the cache.
 // --cache-dir stores each finished model call as <dir>/<key>.json and reuses it on later runs.
