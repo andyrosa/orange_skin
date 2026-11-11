@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-CNLNKseoUbclDKm88kdUvomUUsfY3/RWeD/JxyFHrNE=' 'sha256-98kjkAZVEcASxNKw2R2tM182GuvCpb/kPLNNLJvPkoM='; style-src 'sha256-Fqg/4keAzRlHDzxAjI6+ddNqh5CEtEbrBdt1supnsMw='; connect-src https://openrouter.ai https://hn.algolia.com https://hacker-news.firebaseio.com https://api.keenable.ai; img-src data:; font-src data:; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-CNLNKseoUbclDKm88kdUvomUUsfY3/RWeD/JxyFHrNE=' 'sha256-i8gnLUrBs0xcEKMnXuVFyNN7vPpUw5PDQHSdoCgEv+w='; style-src 'sha256-HpbBFz1RWwxoAmfwwLkc9z6yJ0iybaeK3BmGbJhIRoc='; connect-src https://openrouter.ai https://hn.algolia.com https://hacker-news.firebaseio.com https://api.keenable.ai; img-src data:; font-src data:; base-uri 'none'; form-action 'none'">
 <title>Orange Skin - Hacker News Skimmer</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 32 32%27%3E%3Crect width=%2732%27 height=%2732%27 fill=%27%23ff6600%27/%3E%3Ctext x=%2716%27 y=%2721%27 font-family=%27sans-serif%27 font-weight=%27bold%27 font-size=%2714%27 text-anchor=%27middle%27 fill=%27white%27%3EOS%3C/text%3E%3C/svg%3E">
 <style>
@@ -168,6 +168,11 @@ input[type="number"] { width: 5em; }
     .story-text { flex-direction: column; align-items: stretch; gap: 0.15rem; }
     .story-title { min-width: 0; }
     .story-detail { line-height: 1.4; }
+    /* In the header, the name, Quelch, count, and Unquelch wrap between words inside their own box, a button never
+       breaks inside, and "discussion" keeps its width at the right. */
+    .story-option.header > :first-child { flex: 1 1 0; min-width: 0; overflow-wrap: normal; }
+    .story-option.header button { white-space: nowrap; }
+    .story-option.header .story-hn-head { white-space: nowrap; overflow-wrap: normal; }
 }
 #cached-results-toggle { border: 0; background: none; color: var(--blue); cursor: pointer; font: inherit; margin: 0; padding: 0; text-decoration: underline; }
 #cached-results-toggle:disabled { color: var(--muted); cursor: default; text-decoration: none; }
@@ -5334,7 +5339,7 @@ function showList(stories, headerFor, quelch) {
     if (quelch !== null && quelch.latestQuelch !== null) {
         const { quelchedAt, storyCount } = quelch.latestQuelch;
         // A comma after the Quelch button would sit apart from the name it follows.
-        const separator = quelchShown ? '' : ', ';
+        const separator = quelchShown || header === '' ? '' : ', ';
         headerText.append(`${separator}${quelch.quelchedCount} quelched`, headerButton('Unquelch', `Show again the ${counted(storyCount, 'story', 'stories')} of the latest quelch that hid stories in this list`,
             () => changeQuelched('Unquelch', () => unquelchStories(quelchedAt))));
     }
@@ -5482,7 +5487,7 @@ function refreshList() {
         }
         const start = frontPageIndex * FRONT_PAGE_SIZE;
         const needle = text.toLowerCase();
-        showUnquelchedList(homePageStories.slice(start, start + FRONT_PAGE_SIZE), frontPageLabel, story => story.title.toLowerCase().includes(needle));
+        showUnquelchedList(homePageStories.slice(start, start + FRONT_PAGE_SIZE), () => '', story => story.title.toLowerCase().includes(needle));
         return;
     }
     if (text.length < SEARCH_MIN_CHARS) {
