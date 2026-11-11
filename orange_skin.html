@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-CNLNKseoUbclDKm88kdUvomUUsfY3/RWeD/JxyFHrNE=' 'sha256-i8gnLUrBs0xcEKMnXuVFyNN7vPpUw5PDQHSdoCgEv+w='; style-src 'sha256-HpbBFz1RWwxoAmfwwLkc9z6yJ0iybaeK3BmGbJhIRoc='; connect-src https://openrouter.ai https://hn.algolia.com https://hacker-news.firebaseio.com https://api.keenable.ai; img-src data:; font-src data:; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-CNLNKseoUbclDKm88kdUvomUUsfY3/RWeD/JxyFHrNE=' 'sha256-oKuHxESmPWrUbc4kA7sWKh9WqygF1HwCCkaTB0m+j4c='; style-src 'sha256-sjWdspbW4/eNo3RmDa7Z1/vaM8Ng4tFChFDKJcQ4JLM='; connect-src https://openrouter.ai https://hn.algolia.com https://hacker-news.firebaseio.com https://api.keenable.ai; img-src data:; font-src data:; base-uri 'none'; form-action 'none'">
 <title>Orange Skin - Hacker News Skimmer</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 32 32%27%3E%3Crect width=%2732%27 height=%2732%27 fill=%27%23ff6600%27/%3E%3Ctext x=%2716%27 y=%2721%27 font-family=%27sans-serif%27 font-weight=%27bold%27 font-size=%2714%27 text-anchor=%27middle%27 fill=%27white%27%3EOS%3C/text%3E%3C/svg%3E">
 <style>
@@ -20,7 +20,7 @@
 #share-row .budget { white-space: nowrap; }
 #share-row .budget input { width: 4em; }
 #share-row ~ label { margin-right: 0.6rem; }
-/* Old School and Verbose sit at the right end of the title bar, in the body font. */
+/* Old School and Options sit at the right end of the title bar, in the body font. */
 h1 { display: flex; align-items: center; }
 .title-boxes { margin-left: auto; font-size: 13px; font-weight: normal; font-family: var(--font-body); }
 .title-boxes label { margin-right: 0.6rem; }
@@ -285,7 +285,7 @@ button { margin-right: 0.5rem; }
 <body>
 <h1><span class="title-text">Orange Skin</span><span class="title-boxes"><label title="The 1990 Macintosh look; untick for a plain page styled as Hacker News is; remembered in this browser"><input id="old-school" type="checkbox"> Old School</label>
 <label class="verbose-only" title="Popularity lists every comparison from most to least people, each led by an agreement bar; Consensus groups them by how far the people agree; remembered in this browser">Group by <select id="group-by"><option value="popularity">Popularity</option><option value="consensus">Consensus</option></select></label>
-<label title="Show forecasts, costs, times, cache counts, the model pickers, One-pass analysis, and the share slider; remembered in this browser"><input id="verbose" type="checkbox"> Verbose</label></span></h1>
+<label title="Show forecasts, costs, times, cache counts, the model pickers, One-pass analysis, and the share slider; remembered in this browser"><input id="verbose" type="checkbox"> Options</label></span></h1>
 <div class="row thread-controls">
 <span class="story-scope" role="group" aria-label="Story source">
 <button id="front-page-scope" type="button" aria-pressed="true">Front page</button>
@@ -323,7 +323,7 @@ button { margin-right: 0.5rem; }
 <button id="cancel" type="button" hidden>Cancel</button>
 <span id="thread-info" class="verbose-only"></span>
 <button id="refresh-thread" type="button" hidden>Refetch</button>
-<button id="wipe-key" type="button" hidden>Delete OpenRouter key</button>
+<button id="wipe-key" class="verbose-only" type="button" hidden>Delete OpenRouter key</button>
 <button id="save-held-key" type="button" hidden>Save in this browser</button>
 </p>
 <p><span id="share-row" hidden>
@@ -6958,10 +6958,15 @@ elements.searchAllScope.addEventListener('click', () => selectStoryScope('search
 initializeMinComments();
 selectStoryScope('front', { focus: false });
 elements.threadId.addEventListener('focus', refreshList);
+// A press on a box that already has the focus and an open list closes the list; the focus event of any other press
+// has opened the list before the click arrives, so the state is read when the press starts.
+let pressStartedOnOpenList = false;
+elements.threadId.addEventListener('mousedown', () => {
+    pressStartedOnOpenList = document.activeElement === elements.threadId && listIsOpen();
+});
 elements.threadId.addEventListener('click', () => {
-    if (!listIsOpen()) {
-        refreshList();
-    }
+    if (pressStartedOnOpenList) closeList();
+    else if (!listIsOpen()) refreshList();
 });
 // A Hacker News item page URL pasted or typed into the box becomes its id.
 elements.threadId.addEventListener('input', () => {
