@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-mz2djQ5kFxQ6f+q2tczvqKTMEuE5rbfCpCDkPpCwRrE=' 'sha256-PXakkUdb7qc/ucbNqda/ilCpwcKYuu6/gheYTGykMaQ='; style-src 'sha256-glmOCsOEGo397Qojsk93zBgvRE09Rtlow5TpflFN4Xk='; connect-src https://openrouter.ai https://hn.algolia.com https://hacker-news.firebaseio.com https://api.keenable.ai; img-src data:; font-src data:; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-mz2djQ5kFxQ6f+q2tczvqKTMEuE5rbfCpCDkPpCwRrE=' 'sha256-BJ2G6fXKC04OvRTsLcIgZ+t/gIBE+yqmY1v+DftaVOk='; style-src 'sha256-glmOCsOEGo397Qojsk93zBgvRE09Rtlow5TpflFN4Xk='; connect-src https://openrouter.ai https://hn.algolia.com https://hacker-news.firebaseio.com https://api.keenable.ai; img-src data:; font-src data:; base-uri 'none'; form-action 'none'">
 <title>Orange Skin - Hacker News Skimmer</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 32 32%27%3E%3Crect width=%2732%27 height=%2732%27 fill=%27%23ff6600%27/%3E%3Ctext x=%2716%27 y=%2721%27 font-family=%27sans-serif%27 font-weight=%27bold%27 font-size=%2714%27 text-anchor=%27middle%27 fill=%27white%27%3EOS%3C/text%3E%3C/svg%3E">
 <style>
@@ -4202,8 +4202,6 @@ const resultStore = makePrefixedStore(CONSTANTS.RESULT_KEY_PREFIX, cacheStorage,
 let memoryApiKey = null;
 // A Keenable key entered without Save in this browser is held here until reload; a saved one is in localStorage.
 let memoryKeenableKey = null;
-// Whether Keenable refused a keyless request for its rate limit since the page loaded, which shows the Keenable line.
-let keenableAllowanceUsedUp = false;
 // The held Keenable key, or null when Keenable requests use the free keyless allowance.
 function currentKeenableKey() {
     return localStorage.getItem(CONSTANTS.STORAGE_KEY_KEENABLE) ?? memoryKeenableKey;
@@ -7218,11 +7216,12 @@ askBeforeSaving(elements.keenableSaveHeldKey, saveKeenableKeyStatements, () => {
 function refreshKeenableState() {
     const key = currentKeenableKey();
     const held = key !== null;
-    const freeText = keenableAllowanceUsedUp ? 'the free allowance is used up for your IP address (1,000 requests an hour)' : 'free allowance';
-    showText(elements.keenableState, held ? `your key ${keyPreviewText(key)}` : freeText);
+    // The summary does not ask Keenable (ARTICLE_FETCH_ENGINES), so the line says that instead of implying a use.
+    const notUsedText = 'the page does not ask Keenable at present';
+    showText(elements.keenableState, held ? `your key ${keyPreviewText(key)}, saved for a later test; ${notUsedText}` : notUsedText);
     elements.keenableEnterKey.hidden = held || !elements.keenableKeyEntry.hidden;
     elements.keenableDeleteKey.hidden = !held;
-    elements.keenableRow.hidden = !held && elements.keenableKeyEntry.hidden && !keenableAllowanceUsedUp;
+    elements.keenableRow.hidden = !held && elements.keenableKeyEntry.hidden;
     elements.keenableSaveKey.hidden = elements.keenableKey.value.trim() === '';
     elements.keenableSaveHeldKey.hidden = !held || localStorage.getItem(CONSTANTS.STORAGE_KEY_KEENABLE) !== null;
     closeSaveQuestionsOfHiddenButtons();
