@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-EWLop79xKOuj/a7EvrciH3sXYg+PODxx7lMx7Fxy8kE=' 'sha256-/F1F39kIpkx2tI8eR5i7KBIY+Gr4+XwfisLR6DNfUyQ='; style-src 'sha256-UELgq6++bo2ubqr0hxvTXyrBB90cQIrf0/LkOI8/bpU='; connect-src https://openrouter.ai https://hn.algolia.com https://hacker-news.firebaseio.com https://api.keenable.ai; img-src data:; font-src data:; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-CNLNKseoUbclDKm88kdUvomUUsfY3/RWeD/JxyFHrNE=' 'sha256-98kjkAZVEcASxNKw2R2tM182GuvCpb/kPLNNLJvPkoM='; style-src 'sha256-Fqg/4keAzRlHDzxAjI6+ddNqh5CEtEbrBdt1supnsMw='; connect-src https://openrouter.ai https://hn.algolia.com https://hacker-news.firebaseio.com https://api.keenable.ai; img-src data:; font-src data:; base-uri 'none'; form-action 'none'">
 <title>Orange Skin - Hacker News Skimmer</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 32 32%27%3E%3Crect width=%2732%27 height=%2732%27 fill=%27%23ff6600%27/%3E%3Ctext x=%2716%27 y=%2721%27 font-family=%27sans-serif%27 font-weight=%27bold%27 font-size=%2714%27 text-anchor=%27middle%27 fill=%27white%27%3EOS%3C/text%3E%3C/svg%3E">
 <style>
@@ -260,6 +260,7 @@ button { margin-right: 0.5rem; }
 .axis { max-width: 70rem; }
 .axis > summary { margin: 0.2rem 0; cursor: pointer; }
 .axis .tally { white-space: nowrap; }
+.agree-bar { display: inline-block; width: 3rem; height: 0.7em; margin-right: 0.4rem; vertical-align: baseline; border: 1px solid var(--ink); background: linear-gradient(to right, #2e9e45 var(--agree-share), #d03a3a var(--agree-share)); }
 .axis .evidence { margin: 0.25rem 0 0.75rem; padding-left: 1rem; border-left: 1px solid var(--ink); }
 .axis .evidence-group { margin: 0.6rem 0; }
 .axis .evidence-group h3 { font-size: 13px; margin: 0 0 0.3rem; }
@@ -278,6 +279,7 @@ button { margin-right: 0.5rem; }
 </head>
 <body>
 <h1><span class="title-text">Orange Skin</span><span class="title-boxes"><label title="The 1990 Macintosh look; untick for a plain page styled as Hacker News is; remembered in this browser"><input id="old-school" type="checkbox"> Old School</label>
+<label class="verbose-only" title="Popularity lists every comparison from most to least people, each led by an agreement bar; Consensus groups them by how far the people agree; remembered in this browser">Group by <select id="group-by"><option value="popularity">Popularity</option><option value="consensus">Consensus</option></select></label>
 <label title="Show forecasts, costs, times, cache counts, the model pickers, One-pass analysis, and the share slider; remembered in this browser"><input id="verbose" type="checkbox"> Verbose</label></span></h1>
 <div class="row thread-controls">
 <span class="story-scope" role="group" aria-label="Story source">
@@ -444,6 +446,7 @@ const CONSTANTS = Object.freeze({
     STORAGE_KEY_QUESTION_CAP: 'orange_skin_question_cap_usd',
     STORAGE_KEY_OLD_SCHOOL: 'orange_skin_old_school',
     STORAGE_KEY_VERBOSE: 'orange_skin_verbose',
+    STORAGE_KEY_GROUP_BY: 'orange_skin_group_by',
     STORAGE_KEY_QUELCHED: 'orange_skin_quelched',
     STORAGE_KEY_QUESTIONS: 'orange_skin_questions',
     STORAGE_KEY_PASTED_PAGES: 'orange_skin_pasted_pages',
@@ -4264,6 +4267,7 @@ const elements = {
     wipeKey: document.getElementById('wipe-key'),
     oldSchool: document.getElementById('old-school'),
     verbose: document.getElementById('verbose'),
+    groupBy: document.getElementById('group-by'),
     run: document.getElementById('run'),
     runHint: document.getElementById('run-hint'),
     cancel: document.getElementById('cancel'),
@@ -5791,11 +5795,19 @@ function renderAxisEvidence(row, commentsById, terms) {
 
 // One comparison as one line: the statement more people took, then the people for it and against it, such as
 // (12–5). The line opens to the comparison's comments.
+// A comparison's line starts with the number of people on its two sides, zero-padded to this many digits.
+const TALLY_DIGITS = 3;
+
 function renderAxis(row, commentsById, terms) {
     const line = makeElement('details', { className: 'axis' });
     line.id = `comparison-${row.axisId}`;
-    const summary = makeElement('summary', { text: `${row.statementA} ` });
-    summary.appendChild(makeElement('span', { className: 'tally', text: `(${row.countA}–${row.countB})` }));
+    const summary = makeElement('summary');
+    const people = row.countA + row.countB;
+    const agreeShare = people === 0 ? 0 : Math.max(row.countA, row.countB) / people;
+    const bar = makeElement('span', { className: 'agree-bar' });
+    bar.style.setProperty('--agree-share', `${agreeShare * 100}%`);
+    bar.title = `${Math.round(agreeShare * 100)}% of the people on the two sides agree`;
+    summary.append(makeElement('span', { className: 'tally', text: String(people).padStart(TALLY_DIGITS, '0') }), document.createTextNode(' '), bar, document.createTextNode(row.statementA));
     summary.title = `${counted(row.countA, terms.person, terms.people)} for, ${counted(row.countB, terms.person, terms.people)} against; open to read their ${terms.units}`;
     line.append(summary, renderAxisEvidence(row, commentsById, terms));
     return line;
@@ -6441,7 +6453,26 @@ function changeQuestionCap() {
     localStorage.setItem(CONSTANTS.STORAGE_KEY_QUESTION_CAP, String(capUsd));
 }
 
+// Popularity is the default; localStorage holds a value only while Consensus is chosen.
+const GROUP_BY_CONSENSUS = 'consensus';
+const GROUP_BY_POPULARITY = 'popularity';
+let lastRendered = null;
+
+function currentGroupBy() {
+    return localStorage.getItem(CONSTANTS.STORAGE_KEY_GROUP_BY) === GROUP_BY_CONSENSUS ? GROUP_BY_CONSENSUS : GROUP_BY_POPULARITY;
+}
+
+// Most people on the two sides first, then the larger agreement share, then statement text.
+function sortByPopularity(rows) {
+    const agreement = row => Math.max(row.countA, row.countB) / Math.max(1, row.countA + row.countB);
+    return [...rows].sort((left, right) =>
+        (right.countA + right.countB) - (left.countA + left.countB)
+        || agreement(right) - agreement(left)
+        || left.statementA.localeCompare(right.statementA));
+}
+
 function renderResults(result, comments) {
+    lastRendered = { result, comments };
     const profile = resultProfile(result);
     const { terms } = profile;
     renderedArticle = result.article || null;
@@ -6452,8 +6483,10 @@ function renderResults(result, comments) {
     warningList.replaceChildren(...result.warnings.map(text => makeElement('li', { text })));
     elements.warnings.querySelector('summary').textContent = `${result.warnings.length} warnings`;
     elements.warnings.hidden = result.warnings.length === 0;
-    const rows = orientRows(rankRows(result.rows.map(row => withAuthorCounts(row, commentsById))));
-    const narrative = makeElement('section', { className: 'narrative' });
+    const groupBy = currentGroupBy();
+    const consensusRows = orientRows(rankRows(result.rows.map(row => withAuthorCounts(row, commentsById))));
+    const rows = groupBy === GROUP_BY_POPULARITY ? sortByPopularity(consensusRows) : consensusRows;
+    const narrative =makeElement('section', { className: 'narrative' });
     if (profile.prepared) narrative.appendChild(makeElement('h2', { text: 'Claims and perspectives in this article' }));
     // A thread result shows no summary paragraphs: each non-empty group, in rank order, is its heading and one line
     // per comparison (renderAxis). The lines sit outside the narrative section, whose evidence styles would
@@ -6488,11 +6521,13 @@ function renderResults(result, comments) {
     } else {
         comparisons = makeElement('div');
     }
-    for (const group of ROW_GROUPS) {
-        const members = rows.filter(row => row.group === group.key);
-        if (members.length === 0) continue;
-        const blocks = [makeElement('h3', { className: 'row-group', text: `${group.title} (${members.length})` }),
-            ...members.map(row => renderAxis(row, commentsById, terms))];
+    const rowBlockSets = groupBy === GROUP_BY_POPULARITY
+        ? [rows.map(row => renderAxis(row, commentsById, terms))]
+        : ROW_GROUPS.map(group => ({ group, members: rows.filter(row => row.group === group.key) }))
+            .filter(set => set.members.length > 0)
+            .map(set => [makeElement('h3', { className: 'row-group', text: `${set.group.title} (${set.members.length})` }),
+                ...set.members.map(row => renderAxis(row, commentsById, terms))]);
+    for (const blocks of rowBlockSets) {
         if (!profile.summarized) groupBlocks.push(...blocks);
         else comparisons.append(...blocks);
     }
@@ -6513,9 +6548,9 @@ function renderResults(result, comments) {
         narrative.prepend(makeElement('p', { text: 'Complete text processed · ' + voices + ' textual voices · ' + result.comments.length + ' counted passages. Counts reflect the primary speaker and directly attributed voices in this selected text, not a survey.' }));
         caveats.appendChild(makeElement('p', { text: 'Attribution and semantic reviews are model judgments. Unresolved speech and reported paraphrases are shown separately and do not count as direct testimony. Quotation authenticity and factual claims have not been checked.' }));
     }
-    // The question form sits between the discussion and Scope and caveats, so a question follows what it asks about.
+    // The question form sits after Scope and caveats and before the expandable comparisons.
     elements.results.replaceChildren(narrative, ...groupBlocks);
-    elements.resultsEnd.replaceChildren(caveats, comparisons, ...(profile.prepared ? [renderArticleSource(result.article)] : []));
+    elements.resultsEnd.replaceChildren(caveats, elements.question, comparisons, ...(profile.prepared ? [renderArticleSource(result.article)] : []));
     renderUnverifiedAxes(result.unverifiedAxes || [], commentsById);
     elements.unverifiedAxes.open = false;
     comparisons.appendChild(elements.unverifiedAxes);
@@ -7156,6 +7191,12 @@ elements.verbose.addEventListener('change', () => {
     document.documentElement.classList.toggle(VERBOSE_CLASS, verbose);
     if (verbose) localStorage.setItem(CONSTANTS.STORAGE_KEY_VERBOSE, VERBOSE_ON_VALUE);
     else localStorage.removeItem(CONSTANTS.STORAGE_KEY_VERBOSE);
+});
+elements.groupBy.value = currentGroupBy();
+elements.groupBy.addEventListener('change', () => {
+    if (elements.groupBy.value === GROUP_BY_CONSENSUS) localStorage.setItem(CONSTANTS.STORAGE_KEY_GROUP_BY, GROUP_BY_CONSENSUS);
+    else localStorage.removeItem(CONSTANTS.STORAGE_KEY_GROUP_BY);
+    if (lastRendered) renderResults(lastRendered.result, lastRendered.comments);
 });
 elements.apiKey.addEventListener('input', refreshRunButton);
 elements.apiKey.addEventListener('input', refreshKeyState);
