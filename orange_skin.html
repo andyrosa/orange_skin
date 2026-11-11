@@ -3,16 +3,16 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-CNLNKseoUbclDKm88kdUvomUUsfY3/RWeD/JxyFHrNE=' 'sha256-oKuHxESmPWrUbc4kA7sWKh9WqygF1HwCCkaTB0m+j4c='; style-src 'sha256-sjWdspbW4/eNo3RmDa7Z1/vaM8Ng4tFChFDKJcQ4JLM='; connect-src https://openrouter.ai https://hn.algolia.com https://hacker-news.firebaseio.com https://api.keenable.ai; img-src data:; font-src data:; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-Hyo5+O5cXlUcFC+vpwGIV6mJOV/5FIaEKhE+5EOFVtU=' 'sha256-GthUbDqPIAZGh3DBPSJvsuQsrDe7K05AL8hceQYcgkQ='; style-src 'sha256-+MWuEz5xvlo6j/U5mjf25QAskjO2iWbMqRC8f3KP2KU='; connect-src https://openrouter.ai https://hn.algolia.com https://hacker-news.firebaseio.com https://api.keenable.ai; img-src data:; font-src data:; base-uri 'none'; form-action 'none'">
 <title>Orange Skin - Hacker News Skimmer</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 32 32%27%3E%3Crect width=%2732%27 height=%2732%27 fill=%27%23ff6600%27/%3E%3Ctext x=%2716%27 y=%2721%27 font-family=%27sans-serif%27 font-weight=%27bold%27 font-size=%2714%27 text-anchor=%27middle%27 fill=%27white%27%3EOS%3C/text%3E%3C/svg%3E">
 <style>
 [hidden] { display: none !important; }
-/* Without the verbose class, which the Verbose box sets, the page hides its figures, forecasts, costs, times, and cache
+/* Without the options class, which the Options box sets, the page hides its figures, forecasts, costs, times, and cache
    counts, and the model pickers, One-pass analysis, and the share slider while it is at 100%; the $ budgets stay. A
    budget that lowers the share shows the slider. */
-:root:not(.verbose) :is(.verbose-only, .article-summary-meta, .question-answer-meta) { display: none; }
-:root:not(.verbose) #share-control:has(#share.full-share) { display: none; }
+:root:not(.options) :is(.options-only, .article-summary-meta, .question-answer-meta) { display: none; }
+:root:not(.options) #share-control:has(#share.full-share) { display: none; }
 /* The budgets' labels sit next to their boxes, and each box ends a group; a budget's label stays with its box, and
    the box holds four characters. Summary $ is the Article summary max and Comments $ the Comment max. */
 #share-row label { margin-right: 0.25rem; }
@@ -149,7 +149,6 @@ input[type="number"] { width: 5em; }
    the Quelch, quelched count, and Unquelch did on a phone in Old School (2026-10-25), the float dropped below the
    header into the first story row, and that row, a flex box, narrowed beside the float and pulled its HN cell left. */
 .story-option.header { align-items: baseline; justify-content: space-between; gap: 0.5rem; padding: 0.35rem 0.5rem; }
-.story-option.header .story-hn-head { flex: none; }
 .story-option.header button { margin-left: 0.5rem; }
 .story-text { flex: 1 1 auto; display: flex; align-items: center; gap: 0.35rem; min-width: 0; padding: 0.35rem 0; }
 .story-title { flex: 0 1 auto; min-width: 4rem; overflow: hidden; text-overflow: ellipsis; }
@@ -169,10 +168,9 @@ input[type="number"] { width: 5em; }
     .story-title { min-width: 0; }
     .story-detail { line-height: 1.4; }
     /* In the header, the name, Quelch, count, and Unquelch wrap between words inside their own box, a button never
-       breaks inside, and "discussion" keeps its width at the right. */
+       breaks inside. */
     .story-option.header > :first-child { flex: 1 1 0; min-width: 0; overflow-wrap: normal; }
     .story-option.header button { white-space: nowrap; }
-    .story-option.header .story-hn-head { white-space: nowrap; overflow-wrap: normal; }
 }
 #cached-results-toggle { border: 0; background: none; color: var(--blue); cursor: pointer; font: inherit; margin: 0; padding: 0; text-decoration: underline; }
 #cached-results-toggle:disabled { color: var(--muted); cursor: default; text-decoration: none; }
@@ -222,6 +220,7 @@ button { margin-right: 0.5rem; }
 #status.error { color: var(--red); }
 #article-summary { margin-top: 1rem; max-width: 70rem; line-height: 1.5; }
 #article-summary-cap { width: 5em; }
+#question-cap { width: 3.5em; }
 .article-summary-meta, .question-answer-meta { color: var(--muted); font-size: 14px; font-weight: normal; }
 #question { margin-top: 1rem; max-width: 70rem; }
 #new-conversation-row { display: flex; justify-content: flex-end; }
@@ -250,6 +249,11 @@ button { margin-right: 0.5rem; }
 #question-text:focus { outline: none; }
 .composer-bar { display: flex; flex-wrap: wrap; align-items: center; gap: 0.4rem 0.75rem; margin-top: 0.3rem; color: var(--muted); font-size: 14px; }
 .composer-bar label { display: inline-flex; align-items: center; gap: 0.3rem; margin-right: 0; }
+/* Model, Max $, and Ask stay on one line: the Model box takes the leftover width and shrinks, and Max $ keeps its size. */
+.composer-bar { flex-wrap: nowrap; }
+.composer-bar label[for="question-model"] { flex: 1 1 0; min-width: 0; }
+#question-model { flex: 1 1 0; min-width: 0; max-width: 100%; }
+.composer-bar label[for="question-cap"] { flex: none; }
 #ask-question { margin: 0 0 0 auto; }
 #results, #results-end { margin-top: 1rem; }
 .narrative { max-width: 70rem; line-height: 1.5; }
@@ -284,8 +288,7 @@ button { margin-right: 0.5rem; }
 </head>
 <body>
 <h1><span class="title-text">Orange Skin</span><span class="title-boxes"><label title="The 1990 Macintosh look; untick for a plain page styled as Hacker News is; remembered in this browser"><input id="old-school" type="checkbox"> Old School</label>
-<label class="verbose-only" title="Popularity lists every comparison from most to least people, each led by an agreement bar; Consensus groups them by how far the people agree; remembered in this browser">Group by <select id="group-by"><option value="popularity">Popularity</option><option value="consensus">Consensus</option></select></label>
-<label title="Show forecasts, costs, times, cache counts, the model pickers, One-pass analysis, and the share slider; remembered in this browser"><input id="verbose" type="checkbox"> Options</label></span></h1>
+<label title="Show forecasts, costs, times, cache counts, the model pickers, One-pass analysis, and the share slider; remembered in this browser"><input id="options" type="checkbox"> Options</label></span></h1>
 <div class="row thread-controls">
 <span class="story-scope" role="group" aria-label="Story source">
 <button id="front-page-scope" type="button" aria-pressed="true">Front page</button>
@@ -321,9 +324,9 @@ button { margin-right: 0.5rem; }
 <button id="run" type="button" disabled>Run</button>
 <span id="run-hint"></span>
 <button id="cancel" type="button" hidden>Cancel</button>
-<span id="thread-info" class="verbose-only"></span>
+<span id="thread-info" class="options-only"></span>
 <button id="refresh-thread" type="button" hidden>Refetch</button>
-<button id="wipe-key" class="verbose-only" type="button" hidden>Delete OpenRouter key</button>
+<button id="wipe-key" class="options-only" type="button" hidden>Delete OpenRouter key</button>
 <button id="save-held-key" type="button" hidden>Save in this browser</button>
 </p>
 <p><span id="share-row" hidden>
@@ -331,10 +334,10 @@ button { margin-right: 0.5rem; }
 <span class="budget" title="Comment max $: the budget a run stops at"><label for="max-cost">Comments $</label><input id="max-cost" type="number" min="0" step="1"></span>
 <span id="share-control"><label for="share">% of top comments to analyze</label> <input id="share" type="range" min="0" max="100" value="100"></span>
 </span>
-<label id="single-call-control" class="verbose-only" title="One request does extraction, consolidation, and scoring for the whole thread, and the same model writes the linked article's summary. No second scoring pass checks the stances. On the benchmark thread the request found fewer axes than the stages do, except GPT-6.1 Sol at high, which took about 6 minutes for 323 comments. A pasted article always uses the stages."><input id="single-call" type="checkbox"> One-pass analysis (discouraged)</label>
-<span id="estimate" class="verbose-only"></span></p>
-<div class="model-choices verbose-only">
-<div class="model-choice verbose-only">
+<label id="single-call-control" class="options-only" title="One request does extraction, consolidation, and scoring for the whole thread, and the same model writes the linked article's summary. No second scoring pass checks the stances. On the benchmark thread the request found fewer axes than the stages do, except GPT-6.1 Sol at high, which took about 6 minutes for 323 comments. A pasted article always uses the stages."><input id="single-call" type="checkbox"> One-pass analysis (discouraged)</label>
+<span id="estimate" class="options-only"></span></p>
+<div class="model-choices options-only">
+<div class="model-choice options-only">
 <label id="summary-model-label" for="summary-model-button">Summary</label>
 <div id="summary-model-picker" class="model-picker">
 <button id="summary-model-button" class="model-trigger" type="button" aria-labelledby="summary-model-label summary-model-button" aria-haspopup="listbox" aria-expanded="false" aria-controls="summary-model-options"></button>
@@ -344,7 +347,7 @@ button { margin-right: 0.5rem; }
 <select id="summary-model" hidden aria-hidden="true" tabindex="-1"></select>
 </div>
 </div>
-<div class="model-choice verbose-only">
+<div class="model-choice options-only">
 <label id="extraction-model-label" for="extraction-model-button">Extraction</label>
 <div id="extraction-model-picker" class="model-picker">
 <button id="extraction-model-button" class="model-trigger" type="button" aria-labelledby="extraction-model-label extraction-model-button" aria-haspopup="listbox" aria-expanded="false" aria-controls="extraction-model-options"></button>
@@ -354,7 +357,7 @@ button { margin-right: 0.5rem; }
 <select id="extraction-model" hidden aria-hidden="true" tabindex="-1"></select>
 </div>
 </div>
-<div class="model-choice verbose-only">
+<div class="model-choice options-only">
 <label id="consolidation-model-label" for="consolidation-model-button">Consolidation</label>
 <div id="consolidation-model-picker" class="model-picker">
 <button id="consolidation-model-button" class="model-trigger" type="button" aria-labelledby="consolidation-model-label consolidation-model-button" aria-haspopup="listbox" aria-expanded="false" aria-controls="consolidation-model-options"></button>
@@ -364,7 +367,7 @@ button { margin-right: 0.5rem; }
 <select id="consolidation-model" hidden aria-hidden="true" tabindex="-1"></select>
 </div>
 </div>
-<div class="model-choice verbose-only">
+<div class="model-choice options-only">
 <label id="scoring-model-label" for="scoring-model-button">Scoring</label>
 <div id="scoring-model-picker" class="model-picker">
 <button id="scoring-model-button" class="model-trigger" type="button" aria-labelledby="scoring-model-label scoring-model-button" aria-haspopup="listbox" aria-expanded="false" aria-controls="scoring-model-options"></button>
@@ -374,7 +377,7 @@ button { margin-right: 0.5rem; }
 <select id="scoring-model" hidden aria-hidden="true" tabindex="-1"></select>
 </div>
 </div>
-<div class="model-choice verbose-only" hidden>
+<div class="model-choice options-only" hidden>
 <label id="single-call-model-label" for="single-call-model-button">Model</label>
 <div id="single-call-model-picker" class="model-picker">
 <button id="single-call-model-button" class="model-trigger" type="button" aria-labelledby="single-call-model-label single-call-model-button" aria-haspopup="listbox" aria-expanded="false" aria-controls="single-call-model-options"></button>
@@ -392,7 +395,7 @@ button { margin-right: 0.5rem; }
 <span id="keenable-key-entry" hidden><label>Keenable key <input id="keenable-key" type="password" autocomplete="off"></label> <button id="keenable-save-key" type="button" hidden>Save in this browser</button> <button id="keenable-use-key" type="button">Use key</button></span>
 </p>
 <p>
-<span class="verbose-only">
+<span class="options-only">
 <span id="storage-info">Cached locally: <span id="cached-call-count"></span>, <button id="cached-results-toggle" type="button" aria-expanded="false" aria-controls="cached-results-list" title="Finished runs stored for immediate page restoration; selecting one restores its models, share and budget"></button>, <span id="cached-snapshot-count"></span><span id="cached-date-range" title="Earliest and latest thread snapshot fetch times, in local time"></span>, <span id="quelched-count"></span>, <span id="saved-question-count"></span>, <span id="pasted-page-count"></span>, <span id="keenable-page-count"></span></span>
 <button id="export-cache" type="button">Export</button>
 <button id="import-cache" type="button">Import</button>
@@ -407,6 +410,7 @@ button { margin-right: 0.5rem; }
 <div id="paste-page" hidden><label class="visually-hidden" for="pasted-page-text">Text of the linked page</label><textarea id="pasted-page-text" rows="6" placeholder="Paste the page's text here to summarize it and answer questions from it."></textarea><p id="paste-page-error" hidden></p><button id="summarize-pasted" type="button" hidden>Summarize</button></div>
 </section>
 <section id="post-text" hidden><h2>Post</h2><p></p></section>
+<p id="group-by-row" class="options-only"><label title="Popularity lists every comparison from most to least people, each led by an agreement bar; Consensus groups them by how far the people agree; remembered in this browser">Group by <select id="group-by"><option value="popularity">Popularity</option><option value="consensus">Consensus</option></select></label></p>
 <div id="results"></div>
 <section id="question" hidden>
 <div id="new-conversation-row"><button id="new-conversation" type="button" hidden>New conversation</button></div>
@@ -414,7 +418,7 @@ button { margin-right: 0.5rem; }
 <p id="question-storage-error" hidden></p>
 <div class="composer">
 <label class="visually-hidden" for="question-text">Question about the linked page and the comments</label><textarea id="question-text" rows="2" placeholder="Ask a question" title="Answered from the linked page, every comment in the thread, and the questions and answers above. Enter asks; Shift+Enter starts a new line."></textarea>
-<div class="composer-bar"><label for="question-model" class="verbose-only">Model <select id="question-model"></select></label> <label for="question-cap">Max $ <input id="question-cap" type="number" min="0" step="0.05"></label> <button id="ask-question" type="button" hidden>Ask</button></div>
+<div class="composer-bar"><label for="question-model">Model <select id="question-model"></select></label> <label for="question-cap">Max $ <input id="question-cap" type="number" min="0" step="0.05"></label> <button id="ask-question" type="button" hidden>Ask</button></div>
 </div>
 </section>
 <div id="results-end"></div>
@@ -423,7 +427,7 @@ button { margin-right: 0.5rem; }
 <p>Consolidation proposed these axes, but no comment stance matched between both scoring passes. They are diagnostic output, not counted results.</p>
 <div></div>
 </details>
-<p id="build-info" class="verbose-only">Development build</p>
+<p id="build-info" class="options-only">Development build</p>
 
 <script id="core">
 // Core pipeline: no DOM access. Shared by the page script and by Node (scripts/*.js, through scripts/load_core.js).
@@ -450,7 +454,7 @@ const CONSTANTS = Object.freeze({
     STORAGE_KEY_ARTICLE_SUMMARY_CAP: 'orange_skin_article_summary_cap_usd',
     STORAGE_KEY_QUESTION_CAP: 'orange_skin_question_cap_usd',
     STORAGE_KEY_OLD_SCHOOL: 'orange_skin_old_school',
-    STORAGE_KEY_VERBOSE: 'orange_skin_verbose',
+    STORAGE_KEY_OPTIONS: 'orange_skin_options',
     STORAGE_KEY_GROUP_BY: 'orange_skin_group_by',
     STORAGE_KEY_QUELCHED: 'orange_skin_quelched',
     STORAGE_KEY_QUESTIONS: 'orange_skin_questions',
@@ -4003,10 +4007,10 @@ if (typeof module !== 'undefined' && module.exports) {
 const OLD_SCHOOL_CLASS = 'old-school';
 const OLD_SCHOOL_OFF_VALUE = 'off';
 document.documentElement.classList.toggle(OLD_SCHOOL_CLASS, localStorage.getItem(CONSTANTS.STORAGE_KEY_OLD_SCHOOL) !== OLD_SCHOOL_OFF_VALUE);
-// The Verbose box is unticked by default; localStorage holds a value only while it is ticked.
-const VERBOSE_CLASS = 'verbose';
-const VERBOSE_ON_VALUE = 'on';
-document.documentElement.classList.toggle(VERBOSE_CLASS, localStorage.getItem(CONSTANTS.STORAGE_KEY_VERBOSE) === VERBOSE_ON_VALUE);
+// The Options box is unticked by default; localStorage holds a value only while it is ticked.
+const OPTIONS_CLASS = 'options';
+const OPTIONS_ON_VALUE = 'on';
+document.documentElement.classList.toggle(OPTIONS_CLASS, localStorage.getItem(CONSTANTS.STORAGE_KEY_OPTIONS) === OPTIONS_ON_VALUE);
 
 // Rows are shown in rank order (rankRows: by group, then most people first), one block per axis: statement 1 above,
 // statement 2 below, with a proportion bar between them flanked by each side's vote count.
@@ -4271,7 +4275,7 @@ const elements = {
     keenableUseKey: document.getElementById('keenable-use-key'),
     wipeKey: document.getElementById('wipe-key'),
     oldSchool: document.getElementById('old-school'),
-    verbose: document.getElementById('verbose'),
+    options: document.getElementById('options'),
     groupBy: document.getElementById('group-by'),
     run: document.getElementById('run'),
     runHint: document.getElementById('run-hint'),
@@ -4356,9 +4360,9 @@ function setStatus(text, isError) {
     elements.status.classList.toggle('error', Boolean(isError));
 }
 
-// A status of text, then figures (times and costs) that only Verbose shows, then rest.
+// A status of text, then figures (times and costs) that only Options shows, then rest.
 function setStatusWithFigures(text, figures, rest, isError) {
-    elements.status.replaceChildren(document.createTextNode(text), makeElement('span', { className: 'verbose-only', text: figures }), document.createTextNode(rest));
+    elements.status.replaceChildren(document.createTextNode(text), makeElement('span', { className: 'options-only', text: figures }), document.createTextNode(rest));
     elements.status.classList.toggle('error', Boolean(isError));
 }
 
@@ -5343,7 +5347,7 @@ function showList(stories, headerFor, quelch) {
         headerText.append(`${separator}${quelch.quelchedCount} quelched`, headerButton('Unquelch', `Show again the ${counted(storyCount, 'story', 'stories')} of the latest quelch that hid stories in this list`,
             () => changeQuelched('Unquelch', () => unquelchStories(quelchedAt))));
     }
-    headerItem.append(headerText, makeElement('span', { className: 'story-hn-head', text: 'discussion' }));
+    headerItem.append(headerText);
     const rows = listStories.map((story, index) => {
         const thread = storedThread(String(story.id));
         const item = makeElement('li', { className: 'story-option' });
@@ -7195,12 +7199,12 @@ elements.keenableDeleteKey.addEventListener('click', () => {
     setStatus('Keenable key deleted from this browser; Keenable requests use the free allowance.');
 });
 refreshKeenableState();
-elements.verbose.checked = document.documentElement.classList.contains(VERBOSE_CLASS);
-elements.verbose.addEventListener('change', () => {
-    const verbose = elements.verbose.checked;
-    document.documentElement.classList.toggle(VERBOSE_CLASS, verbose);
-    if (verbose) localStorage.setItem(CONSTANTS.STORAGE_KEY_VERBOSE, VERBOSE_ON_VALUE);
-    else localStorage.removeItem(CONSTANTS.STORAGE_KEY_VERBOSE);
+elements.options.checked = document.documentElement.classList.contains(OPTIONS_CLASS);
+elements.options.addEventListener('change', () => {
+    const options = elements.options.checked;
+    document.documentElement.classList.toggle(OPTIONS_CLASS, options);
+    if (options) localStorage.setItem(CONSTANTS.STORAGE_KEY_OPTIONS, OPTIONS_ON_VALUE);
+    else localStorage.removeItem(CONSTANTS.STORAGE_KEY_OPTIONS);
 });
 elements.groupBy.value = currentGroupBy();
 elements.groupBy.addEventListener('change', () => {

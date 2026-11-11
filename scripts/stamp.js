@@ -11,7 +11,7 @@ const { execFileSync } = require('node:child_process');
 const { HTML_PATH, readPage, readArgument } = require('./load_core');
 
 const DEVELOPMENT_LABEL = 'Development build';
-const BUILD_LINE = `<p id="build-info" class="verbose-only">${DEVELOPMENT_LABEL}</p>`;
+const BUILD_LINE = `<p id="build-info" class="options-only">${DEVELOPMENT_LABEL}</p>`;
 const RELEASE_TAG_PATTERN = /^release-\d{8}T\d{6}[+-]\d{4}$/;
 
 function git(...args) {
