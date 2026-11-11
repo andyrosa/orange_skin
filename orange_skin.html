@@ -3,16 +3,16 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-JLf+LQkPL/DsdxR521abNu0p43vvVHF54dfomwQ2bWI=' 'sha256-X7epuUOQOsF0K/CRYsIH19pd8jwHCh+QPdctua7ZZ8w='; style-src 'sha256-FOl/E7KMv2hzRETDYTwr8kJwGMP8HpLvW9Ygm0FqkHM='; connect-src https://openrouter.ai https://hn.algolia.com https://hacker-news.firebaseio.com https://api.keenable.ai; img-src data:; font-src data:; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-mz2djQ5kFxQ6f+q2tczvqKTMEuE5rbfCpCDkPpCwRrE=' 'sha256-PXakkUdb7qc/ucbNqda/ilCpwcKYuu6/gheYTGykMaQ='; style-src 'sha256-glmOCsOEGo397Qojsk93zBgvRE09Rtlow5TpflFN4Xk='; connect-src https://openrouter.ai https://hn.algolia.com https://hacker-news.firebaseio.com https://api.keenable.ai; img-src data:; font-src data:; base-uri 'none'; form-action 'none'">
 <title>Orange Skin - Hacker News Skimmer</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 32 32%27%3E%3Crect width=%2732%27 height=%2732%27 fill=%27%23ff6600%27/%3E%3Ctext x=%2716%27 y=%2721%27 font-family=%27sans-serif%27 font-weight=%27bold%27 font-size=%2714%27 text-anchor=%27middle%27 fill=%27white%27%3EOS%3C/text%3E%3C/svg%3E">
 <style>
 [hidden] { display: none !important; }
-/* Without the options class, which the Options box sets, the page hides its figures, forecasts, costs, times, and cache
+/* Without the verbose class, which the Verbose box sets, the page hides its figures, forecasts, costs, times, and cache
    counts, and the model pickers, One-pass analysis, and the share slider while it is at 100%; the $ budgets stay. A
    budget that lowers the share shows the slider. */
-:root:not(.options) :is(.options-only, .article-summary-meta) { display: none; }
-:root:not(.options) #share-control:has(#share.full-share) { display: none; }
+:root:not(.verbose) :is(.verbose-only, .article-summary-meta) { display: none; }
+:root:not(.verbose) #share-control:has(#share.full-share) { display: none; }
 /* The budgets' labels sit next to their boxes, and each box ends a group; a budget's label stays with its box, and
    the box holds four characters. Summary $ is the Article summary max and Comments $ the Comment max. */
 #share-row label { margin-right: 0.25rem; }
@@ -22,7 +22,7 @@
 .budget label { margin-right: 0.25rem; }
 .budget input { margin-right: 0.6rem; }
 #share-row ~ label { margin-right: 0.6rem; }
-/* Old School and Options sit at the right end of the title bar, in the body font. */
+/* Old School and Verbose sit at the right end of the title bar, in the body font. */
 h1 { display: flex; align-items: center; }
 .title-boxes { margin-left: auto; font-size: 13px; font-weight: normal; font-family: var(--font-body); }
 .title-boxes label { margin-right: 0.6rem; }
@@ -289,7 +289,7 @@ button { margin-right: 0.5rem; }
 </head>
 <body>
 <h1><span class="title-text">Orange Skin</span><span class="title-boxes"><label title="The 1990 Macintosh look; untick for a plain page styled as Hacker News is; remembered in this browser"><input id="old-school" type="checkbox"> Old School</label>
-<label title="Show forecasts, costs, times, cache counts, the model pickers, One-pass analysis, and the share slider; remembered in this browser"><input id="options" type="checkbox"> Options</label></span></h1>
+<label title="Show forecasts, costs, times, cache counts, the model pickers, One-pass analysis, and the share slider; remembered in this browser"><input id="verbose" type="checkbox"> Verbose</label></span></h1>
 <div class="row thread-controls">
 <span class="story-scope" role="group" aria-label="Story source">
 <button id="front-page-scope" type="button" aria-pressed="true">Front page</button>
@@ -325,18 +325,18 @@ button { margin-right: 0.5rem; }
 <button id="run" type="button" disabled>Run</button>
 <span id="run-hint"></span>
 <button id="cancel" type="button" hidden>Cancel</button>
-<span id="thread-info" class="options-only"></span>
+<span id="thread-info" class="verbose-only"></span>
 <button id="refresh-thread" type="button" hidden>Refetch</button>
-<button id="wipe-key" class="options-only" type="button" hidden>Delete OpenRouter key</button>
+<button id="wipe-key" class="verbose-only" type="button" hidden>Delete OpenRouter key</button>
 <button id="save-held-key" type="button" hidden>Save in this browser</button>
 </p>
 <p><span id="share-row" hidden>
 <span id="share-control"><label for="share">% of top comments to analyze</label> <input id="share" type="range" min="0" max="100" value="100"></span>
 </span>
-<label id="single-call-control" class="options-only" title="One request does extraction, consolidation, and scoring for the whole thread, and the same model writes the linked article's summary. No second scoring pass checks the stances. On the benchmark thread the request found fewer axes than the stages do, except GPT-6.1 Sol at high, which took about 6 minutes for 323 comments. A pasted article always uses the stages."><input id="single-call" type="checkbox"> One-pass analysis (discouraged)</label>
-<span id="estimate" class="options-only"></span></p>
-<div class="model-choices options-only">
-<div class="model-choice options-only">
+<label id="single-call-control" class="verbose-only" title="One request does extraction, consolidation, and scoring for the whole thread, and the same model writes the linked article's summary. No second scoring pass checks the stances. On the benchmark thread the request found fewer axes than the stages do, except GPT-6.1 Sol at high, which took about 6 minutes for 323 comments. A pasted article always uses the stages."><input id="single-call" type="checkbox"> One-pass analysis (discouraged)</label>
+<span id="estimate" class="verbose-only"></span></p>
+<div class="model-choices verbose-only">
+<div class="model-choice verbose-only">
 <label id="summary-model-label" for="summary-model-button">Summary</label>
 <div id="summary-model-picker" class="model-picker">
 <button id="summary-model-button" class="model-trigger" type="button" aria-labelledby="summary-model-label summary-model-button" aria-haspopup="listbox" aria-expanded="false" aria-controls="summary-model-options"></button>
@@ -346,7 +346,7 @@ button { margin-right: 0.5rem; }
 <select id="summary-model" hidden aria-hidden="true" tabindex="-1"></select>
 </div>
 </div>
-<div class="model-choice options-only">
+<div class="model-choice verbose-only">
 <label id="extraction-model-label" for="extraction-model-button">Extraction</label>
 <div id="extraction-model-picker" class="model-picker">
 <button id="extraction-model-button" class="model-trigger" type="button" aria-labelledby="extraction-model-label extraction-model-button" aria-haspopup="listbox" aria-expanded="false" aria-controls="extraction-model-options"></button>
@@ -356,7 +356,7 @@ button { margin-right: 0.5rem; }
 <select id="extraction-model" hidden aria-hidden="true" tabindex="-1"></select>
 </div>
 </div>
-<div class="model-choice options-only">
+<div class="model-choice verbose-only">
 <label id="consolidation-model-label" for="consolidation-model-button">Consolidation</label>
 <div id="consolidation-model-picker" class="model-picker">
 <button id="consolidation-model-button" class="model-trigger" type="button" aria-labelledby="consolidation-model-label consolidation-model-button" aria-haspopup="listbox" aria-expanded="false" aria-controls="consolidation-model-options"></button>
@@ -366,7 +366,7 @@ button { margin-right: 0.5rem; }
 <select id="consolidation-model" hidden aria-hidden="true" tabindex="-1"></select>
 </div>
 </div>
-<div class="model-choice options-only">
+<div class="model-choice verbose-only">
 <label id="scoring-model-label" for="scoring-model-button">Scoring</label>
 <div id="scoring-model-picker" class="model-picker">
 <button id="scoring-model-button" class="model-trigger" type="button" aria-labelledby="scoring-model-label scoring-model-button" aria-haspopup="listbox" aria-expanded="false" aria-controls="scoring-model-options"></button>
@@ -376,7 +376,7 @@ button { margin-right: 0.5rem; }
 <select id="scoring-model" hidden aria-hidden="true" tabindex="-1"></select>
 </div>
 </div>
-<div class="model-choice options-only" hidden>
+<div class="model-choice verbose-only" hidden>
 <label id="single-call-model-label" for="single-call-model-button">Model</label>
 <div id="single-call-model-picker" class="model-picker">
 <button id="single-call-model-button" class="model-trigger" type="button" aria-labelledby="single-call-model-label single-call-model-button" aria-haspopup="listbox" aria-expanded="false" aria-controls="single-call-model-options"></button>
@@ -387,7 +387,7 @@ button { margin-right: 0.5rem; }
 </div>
 </div>
 </div>
-<p class="options-only">
+<p class="verbose-only">
 <span id="article-summary-cap-control" class="budget" title="Article summary max $: caps the linked article's summary"><label for="article-summary-cap">Summary $</label><input id="article-summary-cap" type="number" min="0" step="0.05"></span>
 <span class="budget" title="Comment max $: the budget a run stops at"><label for="max-cost">Comments $</label><input id="max-cost" type="number" min="0" step="1"></span>
 </p>
@@ -398,7 +398,7 @@ button { margin-right: 0.5rem; }
 <span id="keenable-key-entry" hidden><label>Keenable key <input id="keenable-key" type="password" autocomplete="off"></label> <button id="keenable-save-key" type="button" hidden>Save in this browser</button> <button id="keenable-use-key" type="button">Use key</button></span>
 </p>
 <p>
-<span class="options-only">
+<span class="verbose-only">
 <span id="storage-info">Cached locally: <span id="cached-call-count"></span>, <button id="cached-results-toggle" type="button" aria-expanded="false" aria-controls="cached-results-list" title="Finished runs stored for immediate page restoration; selecting one restores its models, share and budget"></button>, <span id="cached-snapshot-count"></span><span id="cached-date-range" title="Earliest and latest thread snapshot fetch times, in local time"></span>, <span id="quelched-count"></span>, <span id="saved-question-count"></span>, <span id="pasted-page-count"></span>, <span id="keenable-page-count"></span></span>
 <button id="export-cache" type="button">Export</button>
 <button id="import-cache" type="button">Import</button>
@@ -413,7 +413,7 @@ button { margin-right: 0.5rem; }
 <div id="paste-page" hidden><label class="visually-hidden" for="pasted-page-text">Text of the linked page</label><textarea id="pasted-page-text" rows="6" placeholder="Paste the page's text here to summarize it and answer questions from it."></textarea><p id="paste-page-error" hidden></p><button id="summarize-pasted" type="button" hidden>Summarize</button></div>
 </section>
 <section id="post-text" hidden><h2>Post</h2><p></p></section>
-<p id="group-by-row" class="options-only"><label title="Popularity lists every comparison from most to least people, each led by an agreement bar; Consensus groups them by how far the people agree; remembered in this browser">Group by <select id="group-by"><option value="popularity">Popularity</option><option value="consensus">Consensus</option></select></label></p>
+<p id="group-by-row" class="verbose-only"><label title="Popularity lists every comparison from most to least people, each led by an agreement bar; Consensus groups them by how far the people agree; remembered in this browser">Group by <select id="group-by"><option value="popularity">Popularity</option><option value="consensus">Consensus</option></select></label></p>
 <div id="results"></div>
 <section id="question" hidden>
 <div id="new-conversation-row"><button id="new-conversation" type="button" hidden>New conversation</button></div>
@@ -430,7 +430,7 @@ button { margin-right: 0.5rem; }
 <p>Consolidation proposed these axes, but no comment stance matched between both scoring passes. They are diagnostic output, not counted results.</p>
 <div></div>
 </details>
-<p id="build-info" class="options-only">Development build</p>
+<p id="build-info" class="verbose-only">Development build</p>
 
 <script id="core">
 // Core pipeline: no DOM access. Shared by the page script and by Node (scripts/*.js, through scripts/load_core.js).
@@ -457,7 +457,7 @@ const CONSTANTS = Object.freeze({
     STORAGE_KEY_ARTICLE_SUMMARY_CAP: 'orange_skin_article_summary_cap_usd',
     STORAGE_KEY_QUESTION_CAP: 'orange_skin_question_cap_usd',
     STORAGE_KEY_OLD_SCHOOL: 'orange_skin_old_school',
-    STORAGE_KEY_OPTIONS: 'orange_skin_options',
+    STORAGE_KEY_VERBOSE: 'orange_skin_verbose',
     STORAGE_KEY_GROUP_BY: 'orange_skin_group_by',
     STORAGE_KEY_QUELCHED: 'orange_skin_quelched',
     STORAGE_KEY_QUESTIONS: 'orange_skin_questions',
@@ -1757,7 +1757,7 @@ const ARTICLE_SUMMARY_SCHEMA = {
 };
 // The most article text one fetch passes to the model.
 const ARTICLE_FETCH_MAX_TOKENS = 30000;
-// Firecrawl scrapes a page's readable text and truncates it to max_content_tokens, for a fee of ARTICLE_FETCH_FEE_USD
+// Firecrawl scrapes a page's readable text and truncates it to max_content_tokens, for a fee of $0.0025
 // per fetch; OpenRouter refuses it when zero data retention is enforced. A provider's native fetch, which the default
 // engine prefers, does not truncate, which would leave the fetched text, and so the cost, unbounded. OpenRouter's own
 // engine truncates but passed about 38,000 tokens of text that the model could not read for https://linear.app/,
@@ -1786,15 +1786,25 @@ const ARTICLE_FETCH_MAX_TOKENS = 30000;
 // curl: its cached copy of that Economist article held only the teaser (290 words of a 14-minute article), its
 // cached copy of the Reuters article above held the whole article (396 words, through the reporter credit), and
 // live=true answered 403 for both. Its preflight allowed the origin https://andyrosa.github.io.
-const ARTICLE_FETCH_ENGINE = 'firecrawl';
-const ARTICLE_FETCH_FEE_USD = 0.0025;
+// The fetch engines a summary tries, in order, until one reads the page. On 2026-11-10 the engines read these of 8
+// test pages (scripts/fetch_test_pages.js, engineResults): parallel 4 (both Twitter posts and two of three Reddit
+// pages), firecrawl 3 (Reuters and both Twitter posts), and exa, openrouter, and native none; the two together read
+// 5, and no other engine read a page that they did not. feeUsd is each engine's fee per fetch for the cost bound:
+// firecrawl's is its documented $0.0025; parallel's is an assumption, because its fetch price was not found.
+// contentTokenFactor scales ARTICLE_FETCH_MAX_TOKENS in the cost bound: parallel passed 35,315 prompt tokens for the
+// Reddit page of Apollo's shutdown, 1.18 times the limit, so the page uses 1.25.
+const ARTICLE_FETCH_ENGINES = Object.freeze([
+    Object.freeze({ name: 'parallel', feeUsd: 0.005, contentTokenFactor: 1.25 }),
+    Object.freeze({ name: 'firecrawl', feeUsd: 0.0025, contentTokenFactor: 1 }),
+]);
 
-// The web fetch tool, limited to the host of url and one fetch, so the model reads the linked page and not other pages.
-function articleFetchTool(url) {
-    return { type: 'openrouter:web_fetch', parameters: { engine: ARTICLE_FETCH_ENGINE, max_uses: 1, max_content_tokens: ARTICLE_FETCH_MAX_TOKENS, allowed_domains: [new URL(url).hostname] } };
+// The web fetch tool for engine, limited to the host of url and one fetch, so the model reads the linked page and
+// not other pages.
+function articleFetchTool(url, engine) {
+    return { type: 'openrouter:web_fetch', parameters: { engine: engine.name, max_uses: 1, max_content_tokens: ARTICLE_FETCH_MAX_TOKENS, allowed_domains: [new URL(url).hostname] } };
 }
 
-function buildArticleSummaryCall(config, thread) {
+function buildArticleSummaryCall(config, thread, engine) {
     return {
         stage: 'articleSummary', ...callSettings(config, 'articleSummary'),
         messages: [
@@ -1802,7 +1812,7 @@ function buildArticleSummaryCall(config, thread) {
             { role: 'user', content: `Title: ${thread.title}\nURL: ${thread.url}` },
         ],
         schema: ARTICLE_SUMMARY_SCHEMA,
-        tools: [articleFetchTool(thread.url)],
+        tools: [articleFetchTool(thread.url, engine)],
         meta: {},
     };
 }
@@ -1833,9 +1843,10 @@ function buildPageTextSummaryCall(config, thread, pageText) {
     };
 }
 
-// The summary call for thread: from pageText when the page's text is given, else with a fetch of the page.
-function buildLinkedArticleSummaryCall(config, thread, pageText) {
-    return pageText === null ? buildArticleSummaryCall(config, thread) : buildPageTextSummaryCall(config, thread, pageText);
+// The summary call for thread: from pageText when the page's text is given, else with a fetch of the page by engine
+// (an ARTICLE_FETCH_ENGINES entry; null when pageText is given).
+function buildLinkedArticleSummaryCall(config, thread, pageText, engine) {
+    return pageText === null ? buildArticleSummaryCall(config, thread, engine) : buildPageTextSummaryCall(config, thread, pageText);
 }
 
 // Keenable's keyless fetch endpoint, which accepts requests from the page's origin and returns a page as markdown from
@@ -1961,7 +1972,7 @@ function buildQuestionCall(summaryKey, thread, question, history, pageText) {
             userMessage(`Question: ${question}`, history.length),
         ],
         schema: QUESTION_SCHEMA,
-        tools: [...(pageText === null && thread.url ? [articleFetchTool(thread.url)] : []), questionSearchTool()],
+        tools: [...(pageText === null && thread.url ? [articleFetchTool(thread.url, ARTICLE_FETCH_ENGINES[0])] : []), questionSearchTool()],
         meta: {},
     };
 }
@@ -2012,8 +2023,12 @@ function fitCappedCall(call, prices, cap) {
     const fetches = toolTypes.includes('openrouter:web_fetch');
     const searches = toolTypes.includes('openrouter:web_search');
     const passes = 1 + (fetches ? WEB_FETCH_MODEL_PASSES - 1 : 0) + (searches ? QUESTION_SEARCH_MAX_USES : 0);
-    const fetchedTokens = (fetches ? ARTICLE_FETCH_MAX_TOKENS : 0) + (searches ? QUESTION_SEARCH_MAX_USES * QUESTION_SEARCH_RESULT_TOKENS : 0);
-    const fetchFeeUsd = (fetches ? ARTICLE_FETCH_FEE_USD : 0) + (searches ? QUESTION_SEARCH_MAX_USES * QUESTION_SEARCH_FEE_USD : 0);
+    const fetchEngine = fetches
+        ? ARTICLE_FETCH_ENGINES.find(engine => engine.name === call.tools.find(tool => tool.type === 'openrouter:web_fetch').parameters.engine)
+        : null;
+    if (fetches && fetchEngine === undefined) throw new Error('The call names a fetch engine that ARTICLE_FETCH_ENGINES does not list, so the cost cannot be bounded');
+    const fetchedTokens = (fetches ? ARTICLE_FETCH_MAX_TOKENS * fetchEngine.contentTokenFactor : 0) + (searches ? QUESTION_SEARCH_MAX_USES * QUESTION_SEARCH_RESULT_TOKENS : 0);
+    const fetchFeeUsd = (fetches ? fetchEngine.feeUsd : 0) + (searches ? QUESTION_SEARCH_MAX_USES * QUESTION_SEARCH_FEE_USD : 0);
     const fixedUsd = (passes * promptTokenBound(call) + fetchedTokens) * promptPrice + passes * price.request + fetchFeeUsd;
     const perOutputTokenUsd = passes * price.completion + (passes - 1) * promptPrice;
     const outputTokens = Math.min(call.maxTokens, Math.floor((cap.usd - fixedUsd) / perOutputTokenUsd));
@@ -2032,8 +2047,8 @@ function billedCost(usage, call) {
 
 // The article summary call as the page sends it first: the selected models' call, from pageText when the page's
 // text is given, fitted to capUsd. The page's cache check builds it to find the summary's cache entry.
-function fittedArticleSummaryCall({ thread, config, prices, capUsd, pageText }) {
-    return fitCappedCall(buildLinkedArticleSummaryCall({ ...DEFAULT_CONFIG, ...config }, thread, pageText), prices, articleSummaryCap(capUsd));
+function fittedArticleSummaryCall({ thread, config, prices, capUsd, pageText, engine }) {
+    return fitCappedCall(buildLinkedArticleSummaryCall({ ...DEFAULT_CONFIG, ...config }, thread, pageText, engine), prices, articleSummaryCap(capUsd));
 }
 
 // An article summary or question call outside a pipeline run, with the one format repair a run gives it, and what
@@ -2080,8 +2095,8 @@ async function runCappedCall({ call, callChat, prices, cap }) {
 
 // The linked article's summary outside a pipeline run, from pageText when the page's text is given, as
 // runCappedCall reports it, with the value as summary. The page calls it when a thread loads.
-async function summarizeLinkedArticle({ thread, config, callChat, prices, capUsd, pageText }) {
-    const call = buildLinkedArticleSummaryCall({ ...DEFAULT_CONFIG, ...config }, thread, pageText);
+async function summarizeLinkedArticle({ thread, config, callChat, prices, capUsd, pageText, engine }) {
+    const call = buildLinkedArticleSummaryCall({ ...DEFAULT_CONFIG, ...config }, thread, pageText, engine);
     const { value, ...figures } = await runCappedCall({ call, callChat, prices, cap: articleSummaryCap(capUsd) });
     return { summary: value, ...figures };
 }
@@ -3779,7 +3794,7 @@ async function runPipeline({ thread, callChat, onProgress, signal, config }) {
     // The linked article's summary, by the summary model, runs beside the analysis. A text post has no link. A failure
     // is reported and leaves the analysis intact.
     const articleSummaryRun = articleSummaryApplies(thread, cfg)
-        ? runUnbatchable(buildArticleSummaryCall(cfg, thread)).then(
+        ? runUnbatchable(buildArticleSummaryCall(cfg, thread, ARTICLE_FETCH_ENGINES[0])).then(
             articleSummary => ({ articleSummary, articleSummaryError: null }),
             error => {
                 const articleSummaryError = signal && signal.aborted ? 'Cancelled during the article summary' : error.message;
@@ -4027,10 +4042,10 @@ if (typeof module !== 'undefined' && module.exports) {
 const OLD_SCHOOL_CLASS = 'old-school';
 const OLD_SCHOOL_OFF_VALUE = 'off';
 document.documentElement.classList.toggle(OLD_SCHOOL_CLASS, localStorage.getItem(CONSTANTS.STORAGE_KEY_OLD_SCHOOL) !== OLD_SCHOOL_OFF_VALUE);
-// The Options box is unticked by default; localStorage holds a value only while it is ticked.
-const OPTIONS_CLASS = 'options';
-const OPTIONS_ON_VALUE = 'on';
-document.documentElement.classList.toggle(OPTIONS_CLASS, localStorage.getItem(CONSTANTS.STORAGE_KEY_OPTIONS) === OPTIONS_ON_VALUE);
+// The Verbose box is unticked by default; localStorage holds a value only while it is ticked.
+const VERBOSE_CLASS = 'verbose';
+const VERBOSE_ON_VALUE = 'on';
+document.documentElement.classList.toggle(VERBOSE_CLASS, localStorage.getItem(CONSTANTS.STORAGE_KEY_VERBOSE) === VERBOSE_ON_VALUE);
 
 // Rows are shown in rank order (rankRows: by group, then most people first), one block per axis: statement 1 above,
 // statement 2 below, with a proportion bar between them flanked by each side's vote count.
@@ -4295,7 +4310,7 @@ const elements = {
     keenableUseKey: document.getElementById('keenable-use-key'),
     wipeKey: document.getElementById('wipe-key'),
     oldSchool: document.getElementById('old-school'),
-    options: document.getElementById('options'),
+    verbose: document.getElementById('verbose'),
     groupBy: document.getElementById('group-by'),
     run: document.getElementById('run'),
     runHint: document.getElementById('run-hint'),
@@ -4380,9 +4395,9 @@ function setStatus(text, isError) {
     elements.status.classList.toggle('error', Boolean(isError));
 }
 
-// A status of text, then figures (times and costs) that only Options shows, then rest.
+// A status of text, then figures (times and costs) that only Verbose shows, then rest.
 function setStatusWithFigures(text, figures, rest, isError) {
-    elements.status.replaceChildren(document.createTextNode(text), makeElement('span', { className: 'options-only', text: figures }), document.createTextNode(rest));
+    elements.status.replaceChildren(document.createTextNode(text), makeElement('span', { className: 'verbose-only', text: figures }), document.createTextNode(rest));
     elements.status.classList.toggle('error', Boolean(isError));
 }
 
@@ -6005,14 +6020,21 @@ function spentText(error) {
 // that refuses the call has no cached summary. pageTexts is savedPageTexts(), which the list reads once.
 async function articleSummaryCached(thread, pageTexts) {
     if (!articleSummaryApplies(thread, DEFAULT_CONFIG)) return false;
-    let call;
-    try {
-        call = fittedArticleSummaryCall({ thread, config: selectedRunConfig(), prices: await capPriceTable(), capUsd: articleSummaryCapInBox(), pageText: pageTextOf(thread, pageTexts) });
-    } catch (error) {
-        if (error instanceof CallCapError) return false;
-        throw error;
+    const pageText = pageTextOf(thread, pageTexts);
+    // A summary of given page text has no fetch engine; a fetched one is cached under the engine that read the page,
+    // so the list counts it as cached when any engine's call has an entry.
+    const engines = pageText === null ? ARTICLE_FETCH_ENGINES : [null];
+    for (const engine of engines) {
+        let call;
+        try {
+            call = fittedArticleSummaryCall({ thread, config: selectedRunConfig(), prices: await capPriceTable(), capUsd: articleSummaryCapInBox(), pageText, engine });
+        } catch (error) {
+            if (error instanceof CallCapError) return false;
+            throw error;
+        }
+        if (usableCachedResponse(call, await cacheStore.get(requestCacheKey(call)))) return true;
     }
-    return usableCachedResponse(call, await cacheStore.get(requestCacheKey(call)));
+    return false;
 }
 
 // The submission's own text, shown as posted, with no model call; a link post can have one too.
@@ -6137,11 +6159,11 @@ async function startArticleSummary(thread, apiKey) {
     const capUsd = articleSummaryCapInBox();
     // The figures of every summary call so far, which the meta line reports together.
     const figures = { costUsd: 0, seconds: 0, cached: true };
-    const summarize = async (pageText, waitingText) => {
+    const summarize = async (pageText, waitingText, engine) => {
         if (isCurrent()) showArticleSummaryText(waitingText, '');
         let outcome;
         try {
-            outcome = await summarizeLinkedArticle({ thread, config: selectedRunConfig(), callChat, prices: await capPriceTable(), capUsd: capUsd - figures.costUsd, pageText });
+            outcome = await summarizeLinkedArticle({ thread, config: selectedRunConfig(), callChat, prices: await capPriceTable(), capUsd: capUsd - figures.costUsd, pageText, engine });
         } catch (error) {
             error.spentUsd = figures.costUsd + (error.spentUsd ?? 0);
             throw error;
@@ -6158,41 +6180,22 @@ async function startArticleSummary(thread, apiKey) {
         let summary = null;
         let source;
         if (pastedText !== null) {
-            summary = await summarize(pastedText, 'Remotely summarizing the pasted page text.');
+            summary = await summarize(pastedText, 'Remotely summarizing the pasted page text.', null);
             source = 'from pasted text';
         } else if (savedKeenableText !== null) {
-            summary = await summarize(savedKeenableText, 'Remotely summarizing the page text from Keenable.');
+            summary = await summarize(savedKeenableText, 'Remotely summarizing the page text from Keenable.', null);
             source = 'from Keenable';
         } else {
-            let keenableText = null;
-            let keenableNote;
-            if (isCurrent()) showArticleSummaryText('Fetching the page text from Keenable.', '');
-            const keenableKey = currentKeenableKey();
-            try {
-                keenableText = await fetchKeenablePage(thread.url, keenableKey, globalThis.fetch);
-            } catch (error) {
-                keenableNote = error.message;
-                if (keenableKey === null && error.status === KEENABLE_RATE_LIMITED_STATUS) {
-                    keenableAllowanceUsedUp = true;
-                    refreshKeenableState();
-                }
-            }
-            if (keenableText !== null) {
-                summary = await summarize(keenableText, 'Remotely summarizing the page text from Keenable.');
-                source = `from Keenable (${keenableKey === null ? 'free allowance' : 'your key'})`;
+            // Each engine in turn fetches the page for the summary call until one reads it; the figures add up.
+            const notReadBy = [];
+            for (const engine of ARTICLE_FETCH_ENGINES) {
+                summary = await summarize(null, `Remotely summarizing the linked article, fetched by ${engine.name}.`, engine);
                 if (summary.fetched) {
-                    try {
-                        storePageText(CONSTANTS.STORAGE_KEY_KEENABLE_PAGES, thread, keenableText);
-                    } catch (error) {
-                        source = `${source}, not saved: ${error.message}`;
-                    }
-                } else {
-                    keenableNote = `its copy was not readable: ${summary.summary}`;
+                    source = notReadBy.length === 0 ? `fetched by ${engine.name}` : `fetched by ${engine.name} after ${notReadBy.join(' and ')} did not read it`;
+                    break;
                 }
-            }
-            if (summary === null || !summary.fetched) {
-                summary = await summarize(null, 'Remotely summarizing the linked article.');
-                source = `fetched by OpenRouter (Keenable: ${keenableNote})`;
+                notReadBy.push(engine.name);
+                source = `${notReadBy.join(' and ')} did not read it`;
             }
         }
         const overCap = figures.costUsd > capUsd ? ` (This summary cost $${figures.costUsd.toFixed(COST_DIGITS)}, more than the Summary $ (Article summary max) of $${capUsd.toFixed(COST_DIGITS)}.)` : '';
@@ -7254,12 +7257,12 @@ elements.keenableDeleteKey.addEventListener('click', () => {
     setStatus('Keenable key deleted from this browser; Keenable requests use the free allowance.');
 });
 refreshKeenableState();
-elements.options.checked = document.documentElement.classList.contains(OPTIONS_CLASS);
-elements.options.addEventListener('change', () => {
-    const options = elements.options.checked;
-    document.documentElement.classList.toggle(OPTIONS_CLASS, options);
-    if (options) localStorage.setItem(CONSTANTS.STORAGE_KEY_OPTIONS, OPTIONS_ON_VALUE);
-    else localStorage.removeItem(CONSTANTS.STORAGE_KEY_OPTIONS);
+elements.verbose.checked = document.documentElement.classList.contains(VERBOSE_CLASS);
+elements.verbose.addEventListener('change', () => {
+    const verbose = elements.verbose.checked;
+    document.documentElement.classList.toggle(VERBOSE_CLASS, verbose);
+    if (verbose) localStorage.setItem(CONSTANTS.STORAGE_KEY_VERBOSE, VERBOSE_ON_VALUE);
+    else localStorage.removeItem(CONSTANTS.STORAGE_KEY_VERBOSE);
 });
 elements.groupBy.value = currentGroupBy();
 elements.groupBy.addEventListener('change', () => {
