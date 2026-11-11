@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-JLf+LQkPL/DsdxR521abNu0p43vvVHF54dfomwQ2bWI=' 'sha256-X7epuUOQOsF0K/CRYsIH19pd8jwHCh+QPdctua7ZZ8w='; style-src 'sha256-cp/tnw17C7KUdQpMGUbgz6CSDZg0WpAnrORKoObgUSE='; connect-src https://openrouter.ai https://hn.algolia.com https://hacker-news.firebaseio.com https://api.keenable.ai; img-src data:; font-src data:; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-JLf+LQkPL/DsdxR521abNu0p43vvVHF54dfomwQ2bWI=' 'sha256-X7epuUOQOsF0K/CRYsIH19pd8jwHCh+QPdctua7ZZ8w='; style-src 'sha256-FOl/E7KMv2hzRETDYTwr8kJwGMP8HpLvW9Ygm0FqkHM='; connect-src https://openrouter.ai https://hn.algolia.com https://hacker-news.firebaseio.com https://api.keenable.ai; img-src data:; font-src data:; base-uri 'none'; form-action 'none'">
 <title>Orange Skin - Hacker News Skimmer</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 32 32%27%3E%3Crect width=%2732%27 height=%2732%27 fill=%27%23ff6600%27/%3E%3Ctext x=%2716%27 y=%2721%27 font-family=%27sans-serif%27 font-weight=%27bold%27 font-size=%2714%27 text-anchor=%27middle%27 fill=%27white%27%3EOS%3C/text%3E%3C/svg%3E">
 <style>
@@ -17,8 +17,10 @@
    the box holds four characters. Summary $ is the Article summary max and Comments $ the Comment max. */
 #share-row label { margin-right: 0.25rem; }
 #share-row input { margin-right: 0.6rem; }
-#share-row .budget { white-space: nowrap; }
-#share-row .budget input { width: 4em; }
+.budget { white-space: nowrap; }
+.budget input { width: 4em; }
+.budget label { margin-right: 0.25rem; }
+.budget input { margin-right: 0.6rem; }
 #share-row ~ label { margin-right: 0.6rem; }
 /* Old School and Options sit at the right end of the title bar, in the body font. */
 h1 { display: flex; align-items: center; }
@@ -329,8 +331,6 @@ button { margin-right: 0.5rem; }
 <button id="save-held-key" type="button" hidden>Save in this browser</button>
 </p>
 <p><span id="share-row" hidden>
-<span id="article-summary-cap-control" class="budget" title="Article summary max $: caps the linked article's summary"><label for="article-summary-cap">Summary $</label><input id="article-summary-cap" type="number" min="0" step="0.05"></span>
-<span class="budget" title="Comment max $: the budget a run stops at"><label for="max-cost">Comments $</label><input id="max-cost" type="number" min="0" step="1"></span>
 <span id="share-control"><label for="share">% of top comments to analyze</label> <input id="share" type="range" min="0" max="100" value="100"></span>
 </span>
 <label id="single-call-control" class="options-only" title="One request does extraction, consolidation, and scoring for the whole thread, and the same model writes the linked article's summary. No second scoring pass checks the stances. On the benchmark thread the request found fewer axes than the stages do, except GPT-6.1 Sol at high, which took about 6 minutes for 323 comments. A pasted article always uses the stages."><input id="single-call" type="checkbox"> One-pass analysis (discouraged)</label>
@@ -387,6 +387,10 @@ button { margin-right: 0.5rem; }
 </div>
 </div>
 </div>
+<p class="options-only">
+<span id="article-summary-cap-control" class="budget" title="Article summary max $: caps the linked article's summary"><label for="article-summary-cap">Summary $</label><input id="article-summary-cap" type="number" min="0" step="0.05"></span>
+<span class="budget" title="Comment max $: the budget a run stops at"><label for="max-cost">Comments $</label><input id="max-cost" type="number" min="0" step="1"></span>
+</p>
 <p id="key-entry">
 <label>OpenRouter key <input id="api-key" type="password" autocomplete="off"></label> <button id="save-key" type="button" hidden>Save in this browser</button> <button id="connect-openrouter" type="button" hidden>Sign in with OpenRouter instead</button>
 </p>
